@@ -1,0 +1,25 @@
+description: >
+  Sample description
+# What will this job do?
+
+executor: default
+
+parameters:
+  env:
+    type: string
+    default: "preprod"
+    description: "The env to deploy"
+  project_name:
+    type: string
+    description: "The stack name to deploy"
+steps:
+  - utils/install_git
+  - checkout
+  - deploy:
+      working_directory: ~/project/deploy/<<parameters.env>>
+      name: Deploy to rancher
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          rancher up --force-upgrade -s <<parameters.project_name>> -d --pull
+          sleep 30
+          rancher up --upgrade --confirm-upgrade -s <<parameters.project_name>> -d
