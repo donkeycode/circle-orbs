@@ -1,0 +1,25 @@
+description: >
+  Sample description
+# What will this job do?
+
+executor: default
+
+parameters:
+  images:
+    type: string
+    description: "List of images to push"
+steps:
+  - setup_remote_docker:  { docker_layer_caching: true }
+  - checkout
+  - run:
+      name: Prepare push Images script
+      environment:
+        IMAGES: <<parameters.images>>
+      command: <<include(scripts/push_images.sh)>>
+  - run:
+      name: Add bash
+      command: apk add --no-cache bash
+  - ecr_login
+  - run:
+      name: Tag Images
+      command: bash ~/project/.circleci/push_images.sh

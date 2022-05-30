@@ -11,10 +11,10 @@ usage:
     use-my-orb:
       jobs:
         - symfony/prepare:
-          name: "Prepare Test"
-          image_tag: 8.1-fpm
-          symfony_folder: apps/api
-          use_encore: true
+            name: "Prepare Test"
+            image_tag: 8.1-fpm
+            symfony_folder: apps/api
+            use_encore: true
             
         - symfony/build:
             name: "Build Test"

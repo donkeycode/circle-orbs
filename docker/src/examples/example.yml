@@ -1,0 +1,19 @@
+description: >
+  Sample example description.
+# Provide a use-case based example for using this orb.
+# Everything in the `usage` section will be displayed in the orb registry.
+# Comments are not retained.
+usage:
+  version: 2.1
+  orbs:
+    docker: donkeycode/docker@0.0.1
+  workflows:
+    use-my-orb:
+      jobs:
+        - docker/push_images
+
+  jobs:
+    sample:
+      executor: docker/default
+      steps:
+        - docker/ecr_login

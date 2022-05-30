@@ -1,7 +1,7 @@
 description: >
   Build symfony project
 
-executor: docker
+executor: docker/default
 
 parameters:
   symfony_folder:
@@ -53,9 +53,8 @@ steps:
       keys:
         - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
   
-  - run:
-      name: ECR Login
-      command: <<include(scripts/ecr_login.sh)>>
+  - docker/ecr_login
+  
   - run:
       name: Build app
       working_directory: ~/project

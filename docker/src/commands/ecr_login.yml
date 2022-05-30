@@ -1,0 +1,6 @@
+description: >
+  Login to AWS ECR
+steps:
+  - run:
+      name: Login to AWS ECR
+      command: <<include(scripts/ecr_login.sh)>>
