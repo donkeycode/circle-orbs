@@ -1,0 +1,11 @@
+description: >
+  Nodejs executor
+docker:
+  - image: 'node:<<parameters.image_tag>>'
+parameters:
+  image_tag:
+    default: lts-alpine
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/_/node?tab=tags
+    type: string

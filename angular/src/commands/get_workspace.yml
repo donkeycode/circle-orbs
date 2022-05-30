@@ -1,0 +1,18 @@
+description: >
+  Get workspace content
+
+parameters:
+  angular_folder:
+    type: string
+    default: "apps/front"
+    description: "The angular base directory"
+    
+steps:
+  - attach_workspace:
+      at: /tmp/workspace
+
+  - run:
+      name: copy dist
+      command: |
+          cp -R /tmp/workspace/<<parameters.angular_folder>>/dist ~/project/<<parameters.angular_folder>>/dist
+          cp -R /tmp/workspace/<<parameters.angular_folder>>/dist-circle ~/project/<<parameters.angular_folder>>/dist-circle

@@ -1,0 +1,50 @@
+description: >
+  Prepare angular project
+
+executor: default
+
+parameters:
+  angular_folder:
+    type: string
+    default: "apps/front"
+    description: "The angular base directory"
+  image_tag:
+    default: lts-alpine
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/_/node?tab=tags
+    type: string
+steps:
+  - checkout
+  - utils/install_git
+  - restore_cache:
+      keys:
+          - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-<<parameters.angular_folder>>-
+  - run:
+      name: Install node deps
+      working_directory: ~/project/<<parameters.angular_folder>>
+      command: npm install
+  - save_cache:
+      key: v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+      paths:
+        - <<parameters.angular_folder>>/node_modules
+  - run:
+      name: Build angular for CIRCLE
+      working_directory: ~/project/<<parameters.angular_folder>>
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          npm run build:circle
+          mv dist dist-circle
+  - run:
+      name: Build angular for BUILD_ENV
+      working_directory: ~/project/<<parameters.angular_folder>>
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          npm run build:${BUILD_ENV}
+  - persist_to_workspace:
+        root: ~/project
+        paths:
+            - <<parameters.angular_folder>>/dist
+            - <<parameters.angular_folder>>/dist-circle

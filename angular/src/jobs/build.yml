@@ -1,0 +1,34 @@
+description: >
+  Prepare angular project
+
+executor: docker/default
+
+parameters:
+  angular_folder:
+    type: string
+    default: "apps/front"
+    description: "The angular base directory"
+  image_base_name:
+    type: string
+    description: "The docker base name eg project/front"
+  dockerfile_base_name:
+    type: string
+    default: "Dockerfile-front"
+    description: "The docker base name eg Dockerfile-front"
+steps:
+  - checkout
+  - setup_remote_docker:  { docker_layer_caching: true }
+  - get_workspace
+  - restore_cache:
+      keys:
+          - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-<<parameters.angular_folder>>-
+  - docker/ecr_login
+  - run:
+      name: Build app
+      working_directory: ~/project
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          docker build -t ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
+          docker push ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1
