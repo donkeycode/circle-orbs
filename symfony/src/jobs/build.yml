@@ -1,0 +1,76 @@
+description: >
+  Build symfony project
+
+executor: docker
+
+parameters:
+  symfony_folder:
+    type: string
+    default: "apps/api"
+    description: "The symfony base directory"
+  use_encore:
+    default: false
+    description: >
+      Is the project need to install encore deps ?
+    type: boolean
+  image_base_name:
+    type: string
+    description: "The docker base name eg project/api"
+  dockerfile_base_name:
+    type: string
+    default: "Dockerfile-php"
+    description: "The docker base name eg Dockerfile-api"
+  use_crontab:
+    default: false
+    description: >
+      Is the project need crontab image
+    type: boolean
+  image_crontab_name:
+    type: string
+    default: "project/crontab"
+    description: "The docker crontab name eg project/api-crontab"
+  dockerfile_crontab_name:
+    type: string
+    default: "Dockerfile-php-crontab"
+    description: "The docker base name eg Dockerfile-api"
+
+steps:
+  - checkout
+  - setup_remote_docker:  { docker_layer_caching: true }
+  - restore_cache:
+      name: Get site deps
+      keys:
+        - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+  - when:
+      condition: <<parameters.use_encore>>
+      steps:
+        - restore_cache:
+            name: Get npm deps
+            keys:
+              - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+  - restore_cache:
+      name: Get public cache
+      keys:
+        - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
+  
+  - run:
+      name: ECR Login
+      command: <<include(scripts/ecr_login.sh)>>
+  - run:
+      name: Build app
+      working_directory: ~/project
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          docker build -t ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
+          docker push ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1
+
+  - when:
+      condition: <<parameters.use_crontab>>
+      steps:
+        - run:
+            name: Build crontab
+            working_directory: ~/project
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                docker build -t ${ECR_BASE}/<<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_crontab_name>> .
+                docker push ${ECR_BASE}/<<parameters.image_crontab_name>>:$CIRCLE_SHA1

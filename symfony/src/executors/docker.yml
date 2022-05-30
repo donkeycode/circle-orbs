@@ -1,0 +1,5 @@
+description: >
+  Docker executor
+docker:
+  -  image: donkeycode/docker-with-compose
+

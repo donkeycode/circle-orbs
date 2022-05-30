@@ -1,0 +1,29 @@
+description: >
+  Sample example description.
+# Provide a use-case based example for using this orb.
+# Everything in the `usage` section will be displayed in the orb registry.
+# Comments are not retained.
+usage:
+  version: 2.1
+  orbs:
+    symfony: donkeycode/symfony@0.0.1
+  workflows:
+    use-my-orb:
+      jobs:
+        - symfony/prepare:
+          name: "Prepare Test"
+          image_tag: 8.1-fpm
+          symfony_folder: apps/api
+          use_encore: true
+            
+        - symfony/build:
+            name: "Build Test"
+            context: rancher-2
+            use_encore: true
+            image_base_name: testorbs/api
+            dockerfile_base_name: Dockerfile-php
+            use_crontab: true
+            image_crontab_name: testorbs/api-crontab
+            dockerfile_crontab_name: Dockerfile-php-crontab
+            requires:
+                - "Prepare Test"

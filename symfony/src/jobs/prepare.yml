@@ -1,0 +1,70 @@
+description: >
+  Prepare symfony project
+
+executor: default
+
+parameters:
+  symfony_folder:
+    type: string
+    default: "apps/api"
+    description: "The symfony base directory"
+  image_tag:
+    default: 8.1-fpm
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+    type: string
+  use_encore:
+    default: false
+    description: >
+      Is the project need to install encore deps ?
+    type: boolean
+steps:
+  - checkout
+  - install_git
+  - restore_cache:
+      keys:
+        - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+        # fallback to using the latest cache if no exact match is found
+        - v1-dependencies-<<parameters.symfony_folder>>-
+  - run:
+      name: Composer 2
+      working_directory: ~/project/<<parameters.symfony_folder>>
+      command: composer self-update --2
+  - run:
+      name: Install site deps
+      working_directory: ~/project/<<parameters.symfony_folder>>
+      command: composer install --ignore-platform-reqs --no-interaction
+  - when:
+      condition: <<parameters.use_encore>>
+      steps:
+        - node/install
+        - restore_cache:
+            keys:
+              - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+              # fallback to using the latest cache if no exact match is found
+              - v1-npmdependencies-<<parameters.symfony_folder>>-
+        - run:
+            name: Install node deps
+            working_directory: ~/project/<<parameters.symfony_folder>>
+            command: npm install
+        - save_cache:
+            paths:
+              - <<parameters.symfony_folder>>/node_modules
+            key: v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+        - run:
+            name: Build assets
+            working_directory: ~/project/<<parameters.symfony_folder>>
+            command: npm run build
+        - run:
+            name: Reinstall assets 
+            working_directory: ~/project/<<parameters.symfony_folder>>
+            command: bin/console assets:install  
+  - save_cache:
+      paths:
+        - <<parameters.symfony_folder>>/vendor
+      key: v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+  - save_cache:
+      paths:
+        - <<parameters.symfony_folder>>/public
+      key: v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
