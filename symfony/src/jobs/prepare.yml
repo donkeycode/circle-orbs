@@ -21,7 +21,7 @@ parameters:
     type: boolean
 steps:
   - checkout
-  - install_git
+  - utils/install_git
   - restore_cache:
       keys:
         - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
