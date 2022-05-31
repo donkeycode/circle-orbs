@@ -16,9 +16,7 @@ steps:
       environment:
         IMAGES: <<parameters.images>>
       command: <<include(scripts/push_images.sh)>>
-  - run:
-      name: Add bash
-      command: apk add --no-cache bash
+  - utils/install_bash
   - ecr_login
   - run:
       name: Tag Images

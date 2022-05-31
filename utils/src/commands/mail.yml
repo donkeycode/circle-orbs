@@ -1,0 +1,28 @@
+description: >
+  This command sends an E-mail to a recipient from a specified address
+  using provided SMTP credentials
+parameters:
+  to:
+    type: string
+    description: "E-mail Recipient"
+  from:
+    type: string
+    description: "E-mail Sender"
+  subject:
+    type: string
+    description: "E-mail subject"
+  body_file:
+    type: string
+    description: "E-mail body file"
+steps:
+  - run: 
+      name: "Install ssmtp"
+      command: apk add --no-cache ssmtp
+  - run:
+      environment:
+        PARAM_TO: <<parameters.to>>
+        PARAM_FROM: <<parameters.from>>
+        PARAM_SUBJECT: <<parameters.subject>>
+        PARAM_BODY_FILE: <<parameters.body_file>>
+      name: Send E-mail
+      command: <<include(scripts/mailer.sh)>>

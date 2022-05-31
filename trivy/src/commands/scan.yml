@@ -1,0 +1,21 @@
+description: >
+  This command will scan images
+# What will this command do?
+# Descriptions should be short, simple, and clear.
+parameters:
+  images:
+    type: string
+    description: "List of images to scan"
+  files:
+    type: string
+    description: "List of files to scan"
+steps:
+  - utils/install_bash
+  - run:
+      environment:
+        IMAGES: <<parameters.images>>
+        FILES: <<parameters.files>>
+      name: Scan images and files
+      command: <<include(scripts/scan_images.sh)>>
+  - store_artifacts:
+      path: /reports

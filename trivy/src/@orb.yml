@@ -1,7 +1,7 @@
 version: 2.1
 
 description: >
-  Sample orb description
+  Run trivy and report errors by email
 # What will your orb allow users to accomplish?
 # Descriptions should be short, simple, and informative.
 
@@ -12,4 +12,5 @@ display:
 
 # If your orb requires other orbs, you can import them like this. Otherwise remove the "orbs" stanza.
 orbs:
-  utils: donkeycode/utils@0.0.2
+ docker: donkeycode/docker@0.0.4
+ utils: donkeycode/utils@0.0.5

@@ -1,0 +1,39 @@
+description: >
+  Sample description
+# What will this job do?
+
+executor: default
+
+parameters:
+  images:
+    type: string
+    description: "List of images to scan"
+  files:
+    type: string
+    description: "List of files to scan"
+  mail_from:
+    type: string
+    default: "hosting@donkeycode.com"
+    description: "Mail from"
+  mail_subject:
+    type: string
+    default: "Security report"
+    description: "Mail subject"
+  mail_to:
+    type: string
+    description: "Mail Report To"
+steps:
+  - checkout
+  - setup_remote_docker:  { docker_layer_caching: true }
+  - docker/ecr_login
+  - install
+  - scan:
+      images: <<parameters.images>>
+      files: <<parameters.files>>
+  - utils/mail:
+      from: <<parameters.mail_from>>
+      subject: <<parameters.mail_subject>>
+      to: <<parameters.mail_to>>
+      body_file: /reports/email.html
+
+
