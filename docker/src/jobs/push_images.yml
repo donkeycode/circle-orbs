@@ -29,7 +29,14 @@ steps:
   - when:
       condition: <<parameters.use_ecr>>
       steps:
-        - ecr_login 
+        - ecr_login
+
+  - when:
+      condition: 
+        not: <<parameters.use_ecr>>
+      steps:
+        - login
+
   - run:
       name: Tag Images
       command: bash ~/project/.circleci/push_images.sh        

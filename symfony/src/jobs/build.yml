@@ -69,6 +69,11 @@ steps:
       condition: <<parameters.use_ecr>>
       steps:
         - docker/ecr_login 
+
+  - when:
+      condition: <<parameters.use_docker_login>>
+      steps:
+        - docker/login 
   
   - run:
       name: Build app

@@ -1,0 +1,7 @@
+description: >
+  Login to docker registry
+steps:
+  - run:
+      name: Login to docker
+      command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_LOGIN --password-stdin $DOCKER_REGISTRY
+
