@@ -45,6 +45,10 @@ parameters:
     type: string
     default: "${DOCKER_REGISTRY}/"
     description: "The docker registry base"
+  docker_folder: 
+    type: string
+    default: "docker"
+    description: "The docker folder"
   
 steps:
   - checkout
@@ -80,7 +84,7 @@ steps:
       working_directory: ~/project
       command: |
           source ~/project/.circleci/determine_env.sh
-          docker build -t <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
+          docker build -t <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/<<parameters.docker_folder>>/<<parameters.dockerfile_base_name>> .
 
   # Need to push     
   - when:
@@ -120,7 +124,7 @@ steps:
             working_directory: ~/project
             command: |
                 source ~/project/.circleci/determine_env.sh
-                docker build -t <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_crontab_name>> .
+                docker build -t <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/<<parameters.docker_folder>>/<<parameters.dockerfile_crontab_name>> .
 
   # Need to push          
   - when:
