@@ -1,6 +1,10 @@
 pack:
 	circleci orb pack ${project}/src/ > ${project}.yaml
 	
+validate:
+	make pack project=${project}
+	circleci orb validate ${project}.yaml
+
 publish-dev:
 	make pack project=${project}
 	circleci orb publish ${project}.yaml donkeycode/${project}@dev:first

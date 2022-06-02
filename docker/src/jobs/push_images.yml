@@ -8,6 +8,14 @@ parameters:
   images:
     type: string
     description: "List of images to push"
+  use_ecr:
+    type: boolean
+    default: true
+    description: "Set true to use aws ecr"
+  docker_registry: 
+    type: string
+    default: "${DOCKER_REGISTRY}/"
+    description: "The docker registry base"
 steps:
   - setup_remote_docker:  { docker_layer_caching: true }
   - checkout
@@ -15,9 +23,13 @@ steps:
       name: Prepare push Images script
       environment:
         IMAGES: <<parameters.images>>
+        DOCKER_REGISTRY: <<parameters.docker_registry>>
       command: <<include(scripts/push_images.sh)>>
   - utils/install_bash
-  - ecr_login
+  - when:
+      condition: <<parameters.use_ecr>>
+      steps:
+        - ecr_login 
   - run:
       name: Tag Images
-      command: bash ~/project/.circleci/push_images.sh
+      command: bash ~/project/.circleci/push_images.sh        

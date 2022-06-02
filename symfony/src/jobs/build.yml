@@ -33,7 +33,19 @@ parameters:
     type: string
     default: "Dockerfile-php-crontab"
     description: "The docker base name eg Dockerfile-api"
-
+  use_ecr:
+    type: boolean
+    default: true
+    description: "Set true to use aws ecr"
+  use_docker_login:
+    type: boolean
+    default: false
+    description: "Set true to use docker login"
+  docker_registry: 
+    type: string
+    default: "${DOCKER_REGISTRY}/"
+    description: "The docker registry base"
+  
 steps:
   - checkout
   - setup_remote_docker:  { docker_layer_caching: true }
@@ -53,15 +65,47 @@ steps:
       keys:
         - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
   
-  - docker/ecr_login
+  - when:
+      condition: <<parameters.use_ecr>>
+      steps:
+        - docker/ecr_login 
   
   - run:
       name: Build app
       working_directory: ~/project
       command: |
           source ~/project/.circleci/determine_env.sh
-          docker build -t ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
-          docker push ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1
+          docker build -t <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
+
+  # Need to push     
+  - when:
+      condition: 
+        or:
+          - <<parameters.use_ecr>>
+          - <<parameters.use_docker_login>>
+      steps:
+        - run:
+            name: Push App
+            working_directory: ~/project
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                docker push <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1
+
+  # Extract to workspace
+  - when:
+      condition: 
+        and:
+            - not: <<parameters.use_ecr>>
+            - not: <<parameters.use_docker_login>>
+      steps:
+        - run:
+            name: Save image to workspace
+            working_directory: ~/project
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                mkdir -p docker-images
+                docker save -o docker-images/<<parameters.image_base_name>>.$CIRCLE_SHA1.tar <<parameters.image_base_name>>:$CIRCLE_SHA1  
+
 
   - when:
       condition: <<parameters.use_crontab>>
@@ -71,5 +115,48 @@ steps:
             working_directory: ~/project
             command: |
                 source ~/project/.circleci/determine_env.sh
-                docker build -t ${ECR_BASE}/<<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_crontab_name>> .
-                docker push ${ECR_BASE}/<<parameters.image_crontab_name>>:$CIRCLE_SHA1
+                docker build -t <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_crontab_name>> .
+
+  # Need to push          
+  - when:
+      condition: 
+        and:
+          - <<parameters.use_crontab>>
+          - or:
+              - <<parameters.use_ecr>>
+              - <<parameters.use_docker_login>>
+      steps:
+        - run:
+            name: Build crontab
+            working_directory: ~/project
+            command: |
+                source ~/project/.circleci/determine_env.sh                
+                docker push <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1
+
+  - when:
+      condition: 
+        and:
+          - <<parameters.use_crontab>>
+          - not: <<parameters.use_ecr>>
+          - not: <<parameters.use_docker_login>>
+      steps:
+        - run:
+            name: Save image to workspace
+            working_directory: ~/project
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                docker save -o docker-images/<<parameters.image_crontab_name>>.$CIRCLE_SHA1.tar <<parameters.image_crontab_name>>:$CIRCLE_SHA1  
+
+  # Persist to workspace
+  - when:
+      condition: 
+        and:
+            - not: <<parameters.use_ecr>>
+            - not: <<parameters.use_docker_login>>
+      steps:
+        - persist_to_workspace:
+            paths:
+                - docker-images
+            root: ~/project
+        - store_artifacts:
+            path: ~/project/docker-images
