@@ -1,0 +1,26 @@
+description: >
+  Run docker-compose up in background
+
+parameters:
+  compose_folder:
+    type: string
+    description: "The docker-compose contained folder"
+
+steps:
+  - run:
+      name: Pull images
+      working_directory: ~/project/<<parameters.compose_folder>>
+      command: docker-compose pull
+  - run:
+      name: Build images
+      working_directory: ~/project/<<parameters.compose_folder>>
+      command: docker-compose build
+  - run: 
+      name: Start docker-compose in background
+      command: docker-compose up
+      working_directory: ~/project/<<parameters.compose_folder>>
+      background: true
+  - run:
+      name: Wait compose is up
+      working_directory: ~/project/<<parameters.compose_folder>>
+      command: <<include(scripts/check_all_running.sh)>>

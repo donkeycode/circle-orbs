@@ -18,7 +18,8 @@ parameters:
 steps:
   - checkout
   - setup_remote_docker:  { docker_layer_caching: true }
-  - get_workspace
+  - get_workspace:
+      angular_folder: <<parameters.angular_folder>>
   - restore_cache:
       keys:
           - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}

@@ -96,6 +96,7 @@ commands:
             - run:
                 command: |
                     apk add --no-cache npm
+                    npm i -g npm@latest
                 environment:
                     NODE_PARAM_NPM_VERSION: <<parameters.version>>
                 name: Install NPM
@@ -391,9 +392,9 @@ jobs:
                 description: Provide any optional steps you would like to run prior to installing the node dependencies. This is a good place to install global modules.
                 type: steps
             version:
-                default: 13.11.0
+                default: 16.15.1
                 description: |
-                    A full version tag must be specified. Example: "13.11.0" For a full list of releases, see the following: https://nodejs.org/en/download/releases
+                    A full version tag must be specified. Example: "16.15.1" For a full list of releases, see the following: https://nodejs.org/en/download/releases
                 type: string
         steps:
             - checkout
