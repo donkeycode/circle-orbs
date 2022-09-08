@@ -20,8 +20,10 @@ parameters:
       Is the project need to install encore deps ?
     type: boolean
 steps:
-  - checkout
   - utils/install_git
+  - run:
+      command: apk add openssh
+  - checkout
   - restore_cache:
       keys:
         - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}

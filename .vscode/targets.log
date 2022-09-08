@@ -7,7 +7,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 
 # This program built for i386-apple-darwin11.3.0
 
-# Make data base, printed on Tue Jun  7 17:06:49 2022
+# Make data base, printed on Thu Sep  8 17:54:35 2022
 
 # Variables
 
@@ -19,8 +19,6 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 ELECTRON_NO_ATTACH_CONSOLE = 1
 # environment
 LC_CTYPE = UTF-8
-# environment
-VSCODE_LOG_NATIVE = false
 # automatic
 ?D = $(patsubst %/,%,$(dir $?))
 # environment
@@ -40,19 +38,13 @@ _ = /usr/bin/make
 # makefile (from `Makefile', line 1)
 MAKEFILE_LIST :=  Makefile
 # environment
-VSCODE_VERBOSE_LOGGING = true
-# environment
 __CFBundleIdentifier = com.microsoft.VSCode
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /var/folders/w5/y_09p8c908s_yfptc045g56c0000gn/T/vscode-ipc-b682a0e5-8149-47ed-a787-0920466ea86d.sock
+VSCODE_CWD = /Users/cedriclombardot/circle-orbs
 # environment
-VSCODE_CWD = /Users/cedriclombardot/docker-public-images
-# environment
-PATH = /usr/local/opt/php@7.4/sbin:/usr/local/opt/php@7.4/bin:/usr/local/opt/php@7.2/sbin:/usr/local/opt/php@7.2/bin:/usr/local/opt/php@7.1/sbin:/usr/local/opt/php@7.1/bin:/opt/local/bin:/opt/local/sbin:/usr/local/sbin:/opt/local/bin:/opt/local/sbin:/usr/local/opt/php@8.0/sbin:/usr/local/opt/php@8.0/bin:/usr/local/opt/php@8.0/sbin:/usr/local/opt/php@8.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/cedriclombardot/Library/Android/sdk/tools:/Users/cedriclombardot/Library/Android/sdk/platform-tools:/Applications/MySQLWorkbench.app/Contents/MacOS:/Users/cedriclombardot/.rvm/bin:/opt/metasploit-framework/bin:/opt/metasploit-framework/bin
+PATH = /opt/local/bin:/opt/local/sbin:/usr/local/opt/php@7.4/sbin:/usr/local/opt/php@7.4/bin:/usr/local/opt/php@7.2/sbin:/usr/local/opt/php@7.2/bin:/usr/local/opt/php@7.1/sbin:/usr/local/opt/php@7.1/bin:/opt/local/bin:/opt/local/sbin:/usr/local/sbin:/opt/local/bin:/opt/local/sbin:/usr/local/opt/php@8.0/sbin:/usr/local/opt/php@8.0/bin:/usr/local/opt/php@8.0/sbin:/usr/local/opt/php@8.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/cedriclombardot/Library/Android/sdk/tools:/Users/cedriclombardot/Library/Android/sdk/platform-tools:/Applications/MySQLWorkbench.app/Contents/MacOS:/Users/cedriclombardot/.rvm/bin:/opt/metasploit-framework/bin:/opt/metasploit-framework/bin
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
-# environment
-VSCODE_LOG_STACK = false
 # environment
 ELECTRON_RUN_AS_NODE = 1
 # environment
@@ -60,11 +52,9 @@ ANDROID_HOME = /Users/cedriclombardot/Library/Android/sdk
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.t6ac6jrtlf/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.Egjd3aOvsU/Listeners
 # automatic
 %F = $(notdir $%)
-# environment
-VSCODE_PIPE_LOGGING = true
 # environment
 PWD = /Users/cedriclombardot/circle-orbs
 # environment
@@ -76,11 +66,11 @@ VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
 # environment
 HOME = /Users/cedriclombardot
 # default
-MAKEFILEPATH = $(shell /usr/bin/xcode-select -print-path 2>/dev/null || echo /Developer)/Makefiles
+MAKEFILEPATH := /Applications/Xcode.app/Contents/Developer/Makefiles
 # environment
 VSCODE_CLI = 1
 # environment
-VSCODE_CODE_CACHE_PATH = /Users/cedriclombardot/Library/Application Support/Code/CachedData/c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
+VSCODE_CODE_CACHE_PATH = /Users/cedriclombardot/Library/Application Support/Code/CachedData/784b0177c56c607789f9638da7b6bf3230d47a8c
 # environment
 LOGNAME = cedriclombardot
 # environment
@@ -108,21 +98,23 @@ USER = cedriclombardot
 # makefile
 .DEFAULT_GOAL := pack
 # environment
-TERM_SESSION_ID = 85E29C02-3961-421A-B4C2-062160330EDD
+TERM_SESSION_ID = B12F37C3-14D8-4609-BB4B-C3C1F5716324
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # default
-MAKE_COMMAND := /Library/Developer/CommandLineTools/usr/bin/make
+MAKE_COMMAND := /Applications/Xcode.app/Contents/Developer/usr/bin/make
 # environment
 TERM_PROGRAM = Apple_Terminal
 # default
 .VARIABLES := 
 # environment
-TMPDIR = /var/folders/w5/y_09p8c908s_yfptc045g56c0000gn/T/
+TMPDIR = /var/folders/q4/j4mg9cp97dggs5bxttnxbbf80000gn/T/
 # automatic
 *F = $(notdir $*)
 # environment
-VSCODE_IPC_HOOK = /Users/cedriclombardot/Library/Application Support/Code/1.67.2-main.sock
+VSCODE_IPC_HOOK = /Users/cedriclombardot/Library/Application Support/Code/1.71.0-main.sock
+# environment
+MallocNanoZone = 0
 # makefile
 MAKEFLAGS = Rrqp
 # environment
@@ -130,11 +122,11 @@ MFLAGS = -Rrqp
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
-TERM_PROGRAM_VERSION = 440
+TERM_PROGRAM_VERSION = 445
 # environment
 NVM_DIR = /Users/cedric/.nvm
 # environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.33038891.33038897.65A526B8-3F3D-4B30-B9DE-FFCFC4690C74
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.25862179.25862185.AA6998BC-08E8-4879-8E33-D6CBBA8F7CFD
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # automatic
@@ -164,11 +156,11 @@ LANG = C
 # environment
 TERM = xterm-256color
 # environment
-VSCODE_PID = 62802
+VSCODE_PID = 52468
 # environment
 NVM_RC_VERSION = 
 # variable set hash-table stats:
-# Load=78/1024=8%, Rehash=0, Collisions=2/102=2%
+# Load=74/1024=7%, Rehash=0, Collisions=2/98=2%
 
 # Pattern-specific Variable Values
 
@@ -176,7 +168,7 @@ NVM_RC_VERSION =
 
 # Directories
 
-# . (device 16777220, inode 33465064): 22 files, no impossibilities.
+# . (device 16777223, inode 2909470): 22 files, no impossibilities.
 
 # 22 files, no impossibilities in 1 directories.
 
@@ -264,7 +256,7 @@ publish-dev:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Tue Jun  7 17:06:49 2022
+# Finished Make data base on Thu Sep  8 17:54:35 2022
 
  
 make: *** No rule to make target `all'.  Stop.
