@@ -51,6 +51,9 @@ parameters:
     description: "The docker folder"
   
 steps:
+  - utils/install_git
+  - run:
+      command: apk add openssh
   - checkout
   - setup_remote_docker:  { docker_layer_caching: true }
   - restore_cache:
