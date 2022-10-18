@@ -31,6 +31,18 @@ steps:
       paths:
         - <<parameters.angular_folder>>/node_modules
   - run:
+      name: Lint angular
+      working_directory: ~/project/<<parameters.angular_folder>>
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          npm run lint
+  - run:
+      name: Prettier angular
+      working_directory: ~/project/<<parameters.angular_folder>>
+      command: |
+          source ~/project/.circleci/determine_env.sh
+          npm run prettier-check
+  - run:
       name: Build angular for CIRCLE
       working_directory: ~/project/<<parameters.angular_folder>>
       command: |
