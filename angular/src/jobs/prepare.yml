@@ -14,6 +14,16 @@ parameters:
       Pick a specific donkeycode/php-nginx-symfony image variant:
       https://hub.docker.com/_/node?tab=tags
     type: string
+  use_lint:
+    default: true
+    description: >
+      Does the project need to use lint ?
+    type: boolean
+  use_prettier:
+    default: true
+    description: >
+      Does the project need to use prettier-check ?
+    type: boolean
 steps:
   - checkout
   - utils/install_git
@@ -30,18 +40,24 @@ steps:
       key: v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
       paths:
         - <<parameters.angular_folder>>/node_modules
-  - run:
-      name: Lint angular
-      working_directory: ~/project/<<parameters.angular_folder>>
-      command: |
-          source ~/project/.circleci/determine_env.sh
-          npm run lint
-  - run:
-      name: Prettier angular
-      working_directory: ~/project/<<parameters.angular_folder>>
-      command: |
-          source ~/project/.circleci/determine_env.sh
-          npm run prettier-check
+  - when:
+      condition: <<parameters.use_lint>>
+      steps:
+        - run:
+            name: Lint angular
+            working_directory: ~/project/<<parameters.angular_folder>>
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                npm run lint
+  - when:
+      condition: <<parameters.use_prettier>>
+      steps:
+        - run:
+            name: Prettier angular
+            working_directory: ~/project/<<parameters.angular_folder>>
+            command: |
+                source ~/project/.circleci/determine_env.sh
+                npm run prettier-check
   - run:
       name: Build angular for CIRCLE
       working_directory: ~/project/<<parameters.angular_folder>>
