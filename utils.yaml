@@ -1,0 +1,91 @@
+version: 2.1
+description: |
+    Utils tools
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+commands:
+    install_bash:
+        description: |
+            Install bash
+        steps:
+            - run:
+                command: apk add --no-cache bash
+                name: Install bash
+    install_git:
+        description: |
+            Install git
+        steps:
+            - run:
+                command: apk update && apk add git && apk add patch
+                name: Install git
+    mail:
+        description: |
+            This command sends an E-mail to a recipient from a specified address using provided SMTP credentials
+        parameters:
+            body_file:
+                description: E-mail body file
+                type: string
+            from:
+                description: E-mail Sender
+                type: string
+            subject:
+                description: E-mail subject
+                type: string
+            to:
+                description: E-mail Recipient
+                type: string
+        steps:
+            - run:
+                command: apk add --no-cache ssmtp
+                name: Install ssmtp
+            - run:
+                command: |-
+                    cat \<< EOF | tee /etc/ssmtp/ssmtp.conf
+                    UseSTARTTLS=YES
+                    FromLineOverride=YES
+                    root=$PARAM_FROM
+                    mailhub=$SMTP_HOST:587
+                    AuthUser=$SMTP_USER
+                    AuthPass=$SMTP_PASS
+                    EOF
+
+                    cat \<< EOF | tee /etc/ssmtp/revaliases
+                    root:$PARAM_FROM:$SMTP_HOST:587
+                    circleci:$PARAM_FROM:$SMTP_HOST:587
+                    EOF
+
+                    cat > mail.txt \<< EOF
+                    To: $PARAM_TO
+                    From: $PARAM_FROM
+                    Subject: $PARAM_SUBJECT
+                    MIME-Version: 1.0
+                    Content-Type: text/html; charset=utf-8
+
+                    EOF
+
+
+                    cat $PARAM_BODY_FILE >> mail.txt
+
+                    ssmtp $PARAM_TO < mail.txt
+                environment:
+                    PARAM_BODY_FILE: <<parameters.body_file>>
+                    PARAM_FROM: <<parameters.from>>
+                    PARAM_SUBJECT: <<parameters.subject>>
+                    PARAM_TO: <<parameters.to>>
+                name: Send E-mail
+executors: {}
+jobs: {}
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                utils: donkeycode/utils@0.0.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - utils/install_git
+

@@ -1,0 +1,269 @@
+version: 2.1
+description: |
+    Help to deploy symfony projects
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    docker: donkeycode/docker@0.0.14
+    node: donkeycode/node@0.0.6
+    utils: donkeycode/utils@0.0.1
+commands: {}
+executors:
+    default:
+        description: |
+            Php nginx executor
+        docker:
+            - image: donkeycode/php-nginx-symfony:<<parameters.image_tag>>
+        parameters:
+            image_tag:
+                default: 8.1-fpm
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+                type: string
+jobs:
+    build:
+        description: |
+            Build symfony project
+        executor: docker/default
+        parameters:
+            docker_folder:
+                default: docker
+                description: The docker folder
+                type: string
+            docker_registry:
+                default: ${DOCKER_REGISTRY}/
+                description: The docker registry base
+                type: string
+            dockerfile_base_name:
+                default: Dockerfile-php
+                description: The docker base name eg Dockerfile-api
+                type: string
+            dockerfile_crontab_name:
+                default: Dockerfile-php-crontab
+                description: The docker base name eg Dockerfile-api
+                type: string
+            image_base_name:
+                description: The docker base name eg project/api
+                type: string
+            image_crontab_name:
+                default: project/crontab
+                description: The docker crontab name eg project/api-crontab
+                type: string
+            symfony_folder:
+                default: apps/api
+                description: The symfony base directory
+                type: string
+            use_crontab:
+                default: false
+                description: |
+                    Is the project need crontab image
+                type: boolean
+            use_docker_login:
+                default: false
+                description: Set true to use docker login
+                type: boolean
+            use_ecr:
+                default: true
+                description: Set true to use aws ecr
+                type: boolean
+            use_encore:
+                default: false
+                description: |
+                    Is the project need to install encore deps ?
+                type: boolean
+        steps:
+            - checkout
+            - setup_remote_docker:
+                docker_layer_caching: true
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+                name: Get site deps
+            - when:
+                condition: <<parameters.use_encore>>
+                steps:
+                    - restore_cache:
+                        keys:
+                            - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+                        name: Get npm deps
+            - restore_cache:
+                keys:
+                    - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
+                name: Get public cache
+            - when:
+                condition: <<parameters.use_ecr>>
+                steps:
+                    - docker/ecr_login
+            - when:
+                condition: <<parameters.use_docker_login>>
+                steps:
+                    - docker/login
+            - run:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    docker build -t <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/<<parameters.docker_folder>>/<<parameters.dockerfile_base_name>> .
+                name: Build app
+                working_directory: ~/project
+            - when:
+                condition:
+                    or:
+                        - <<parameters.use_ecr>>
+                        - <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: |
+                            source ~/project/.circleci/determine_env.sh
+                            docker push <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1
+                        name: Push App
+                        working_directory: ~/project
+            - when:
+                condition:
+                    and:
+                        - not: <<parameters.use_ecr>>
+                        - not: <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: "source ~/project/.circleci/determine_env.sh\nmkdir -p docker-images\ndocker save -o docker-images/<<parameters.image_base_name>>.$CIRCLE_SHA1.tar <<parameters.image_base_name>>:$CIRCLE_SHA1  \n"
+                        name: Save image to workspace
+                        working_directory: ~/project
+            - when:
+                condition: <<parameters.use_crontab>>
+                steps:
+                    - run:
+                        command: |
+                            source ~/project/.circleci/determine_env.sh
+                            docker build -t <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1 -f ~/project/<<parameters.docker_folder>>/<<parameters.dockerfile_crontab_name>> .
+                        name: Build crontab
+                        working_directory: ~/project
+            - when:
+                condition:
+                    and:
+                        - <<parameters.use_crontab>>
+                        - or:
+                            - <<parameters.use_ecr>>
+                            - <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: "source ~/project/.circleci/determine_env.sh                \ndocker push <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1\n"
+                        name: Build crontab
+                        working_directory: ~/project
+            - when:
+                condition:
+                    and:
+                        - <<parameters.use_crontab>>
+                        - not: <<parameters.use_ecr>>
+                        - not: <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: "source ~/project/.circleci/determine_env.sh\ndocker save -o docker-images/<<parameters.image_crontab_name>>.$CIRCLE_SHA1.tar <<parameters.image_crontab_name>>:$CIRCLE_SHA1  \n"
+                        name: Save image to workspace
+                        working_directory: ~/project
+            - when:
+                condition:
+                    and:
+                        - not: <<parameters.use_ecr>>
+                        - not: <<parameters.use_docker_login>>
+                steps:
+                    - persist_to_workspace:
+                        paths:
+                            - docker-images
+                        root: ~/project
+                    - store_artifacts:
+                        path: ~/project/docker-images
+    prepare:
+        description: |
+            Prepare symfony project
+        executor: default
+        parameters:
+            image_tag:
+                default: 8.1-fpm
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+                type: string
+            symfony_folder:
+                default: apps/api
+                description: The symfony base directory
+                type: string
+            use_encore:
+                default: false
+                description: |
+                    Is the project need to install encore deps ?
+                type: boolean
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add openssh
+            - checkout
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+                    - v1-dependencies-<<parameters.symfony_folder>>-
+            - run:
+                command: composer self-update --2
+                name: Composer 2
+                working_directory: ~/project/<<parameters.symfony_folder>>
+            - run:
+                command: composer install --ignore-platform-reqs --no-interaction
+                name: Install site deps
+                working_directory: ~/project/<<parameters.symfony_folder>>
+            - when:
+                condition: <<parameters.use_encore>>
+                steps:
+                    - node/install
+                    - restore_cache:
+                        keys:
+                            - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+                            - v1-npmdependencies-<<parameters.symfony_folder>>-
+                    - run:
+                        command: npm install
+                        name: Install node deps
+                        working_directory: ~/project/<<parameters.symfony_folder>>
+                    - save_cache:
+                        key: v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+                        paths:
+                            - <<parameters.symfony_folder>>/node_modules
+                    - run:
+                        command: npm run build
+                        name: Build assets
+                        working_directory: ~/project/<<parameters.symfony_folder>>
+                    - run:
+                        command: bin/console assets:install
+                        name: Reinstall assets
+                        working_directory: ~/project/<<parameters.symfony_folder>>
+            - save_cache:
+                key: v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+                paths:
+                    - <<parameters.symfony_folder>>/vendor
+            - save_cache:
+                key: v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
+                paths:
+                    - <<parameters.symfony_folder>>/public
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                symfony: donkeycode/symfony@0.0.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - symfony/prepare:
+                            image_tag: 8.1-fpm
+                            name: Prepare Test
+                            symfony_folder: apps/api
+                            use_encore: true
+                        - symfony/build:
+                            context: rancher-2
+                            dockerfile_base_name: Dockerfile-php
+                            dockerfile_crontab_name: Dockerfile-php-crontab
+                            image_base_name: testorbs/api
+                            image_crontab_name: testorbs/api-crontab
+                            name: Build Test
+                            requires:
+                                - Prepare Test
+                            use_crontab: true
+                            use_encore: true
+

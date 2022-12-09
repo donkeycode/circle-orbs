@@ -1,0 +1,238 @@
+version: 2.1
+description: |
+    Sample orb description
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    utils: donkeycode/utils@0.0.2
+commands:
+    compose_up:
+        description: |
+            Run docker-compose up in background
+        parameters:
+            compose_folder:
+                description: The docker-compose contained folder
+                type: string
+        steps:
+            - run:
+                command: docker-compose pull
+                name: Pull images
+                working_directory: ~/project/<<parameters.compose_folder>>
+            - run:
+                command: docker-compose build
+                name: Build images
+                working_directory: ~/project/<<parameters.compose_folder>>
+            - run:
+                background: true
+                command: docker-compose up
+                name: Start docker-compose in background
+                working_directory: ~/project/<<parameters.compose_folder>>
+            - run:
+                command: "cat \\<<EOF >  ~/project/.circleci/check_all_running.sh\n\n#!/bin/bash\n\nfunction checkUp(   )\n{\n    running=\"$(docker-compose ps --services --filter \"status=running\")\"\n    services=\"$(docker-compose ps --services)\"\n    if [ \"$running\" != \"$services\" ]; then\n        echo \"Wait running\" \n        comm -13 <(sort \\<<<\"$running\") <(sort \\<<<\"$services\")\n\n        sleep 10\n        checkUp\n    else\n        echo \"All services are running\"\n    fi\n}\n\ncheckUp\n\nEOF\n\nbash ~/project/.circleci/check_all_running.sh"
+                name: Wait compose is up
+                working_directory: ~/project/<<parameters.compose_folder>>
+    ecr_login:
+        description: |
+            Login to AWS ECR
+        steps:
+            - run:
+                command: |-
+                    echo "Install or Update aws cli"
+                    if hash apk 2>/dev/null; then
+                        # Install with apk
+                        apk add --update \
+                            python \
+                            python-dev \
+                            py-pip \
+                            build-base \
+                            && pip install awscli --upgrade --user \
+                            && apk --purge -v del py-pip \
+                            && rm -rf /var/cache/apk/*
+                    else
+                        # sudo apt-get update
+                        sudo apt-get install -y unzip curl
+                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                        sudo unzip awscliv2.zip
+                        sudo ./aws/install -u
+                    fi
+
+                    AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=$DOCKER_USER AWS_SECRET_ACCESS_KEY=$DOCKER_PASS aws ecr get-login-password |
+                      docker login \
+                        --username AWS \
+                        --password-stdin \
+                        $DOCKER_REGISTRY
+                name: Login to AWS ECR
+    login:
+        description: |
+            Login to docker registry
+        steps:
+            - run:
+                command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_LOGIN --password-stdin $DOCKER_REGISTRY
+                name: Login to docker
+executors:
+    default:
+        description: |
+            Docker executor
+        docker:
+            - image: donkeycode/docker-with-compose
+jobs:
+    build:
+        description: |
+            Build docker image
+        executor: default
+        parameters:
+            docker_folder:
+                default: docker
+                description: The docker folder
+                type: string
+            docker_registry:
+                default: ${DOCKER_REGISTRY}/
+                description: The docker registry base
+                type: string
+            dockerfile:
+                default: Dockerfile-php
+                description: The docker base name eg Dockerfile-api
+                type: string
+            image_base_name:
+                description: The docker base name eg project/api
+                type: string
+            use_docker_login:
+                default: false
+                description: Set true to use docker login
+                type: boolean
+            use_ecr:
+                default: true
+                description: Set true to use aws ecr
+                type: boolean
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add openssh
+            - checkout
+            - setup_remote_docker:
+                docker_layer_caching: true
+            - when:
+                condition: <<parameters.use_ecr>>
+                steps:
+                    - ecr_login
+            - when:
+                condition: <<parameters.use_docker_login>>
+                steps:
+                    - login
+            - run:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    docker build -t <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/<<parameters.docker_folder>>/<<parameters.dockerfile>> .
+                name: Build app
+                working_directory: ~/project
+            - when:
+                condition:
+                    or:
+                        - <<parameters.use_ecr>>
+                        - <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: |
+                            source ~/project/.circleci/determine_env.sh
+                            docker push <<parameters.docker_registry>><<parameters.image_base_name>>:$CIRCLE_SHA1
+                        name: Push App
+                        working_directory: ~/project
+            - when:
+                condition:
+                    and:
+                        - not: <<parameters.use_ecr>>
+                        - not: <<parameters.use_docker_login>>
+                steps:
+                    - run:
+                        command: |-
+                            source ~/project/.circleci/determine_env.sh
+                            mkdir -p docker-images
+                            docker save -o docker-images/<<parameters.image_base_name>>.$CIRCLE_SHA1.tar <<parameters.image_base_name>>:$CIRCLE_SHA1
+                        name: Save image to workspace
+                        working_directory: ~/project
+    push_images:
+        description: |
+            Sample description
+        executor: default
+        parameters:
+            docker_registry:
+                default: ${DOCKER_REGISTRY}/
+                description: The docker registry base
+                type: string
+            images:
+                description: List of images to push
+                type: string
+            use_ecr:
+                default: true
+                description: Set true to use aws ecr
+                type: boolean
+        steps:
+            - setup_remote_docker:
+                docker_layer_caching: true
+            - checkout
+            - run:
+                command: |-
+                    cat \<<EOF >  ~/project/.circleci/push_images.sh
+                    #!/bin/bash
+                    source ~/project/.circleci/determine_env.sh
+
+                    images=(${IMAGES})
+
+                    for image in "\${images[@]}"
+                    do
+                        docker pull ${DOCKER_REGISTRY}\${image}:\$CIRCLE_SHA1
+                        if [ \$? -ne 0 ]; then
+                            echo "ERROR DOCKER PULL \${image}"
+                            exit 1
+                        fi
+
+                        docker image tag ${DOCKER_REGISTRY}\${image}:\$CIRCLE_SHA1 ${DOCKER_REGISTRY}\${image}:\$BUILD_ENV
+                        if [ \$? -ne 0 ]; then
+                            echo "ERROR DOCKER IMAGE TAG \${image}"
+                            exit 1
+                        fi
+
+                        docker push ${DOCKER_REGISTRY}\${image}:\$BUILD_ENV
+                        if [ \$? -ne 0 ]; then
+                            echo "ERROR DOCKER PUSH \${image}"
+                            exit 1
+                        fi
+
+                    done
+                    EOF
+                environment:
+                    DOCKER_REGISTRY: <<parameters.docker_registry>>
+                    IMAGES: <<parameters.images>>
+                name: Prepare push Images script
+            - utils/install_bash
+            - when:
+                condition: <<parameters.use_ecr>>
+                steps:
+                    - ecr_login
+            - when:
+                condition:
+                    not: <<parameters.use_ecr>>
+                steps:
+                    - login
+            - run:
+                command: bash ~/project/.circleci/push_images.sh
+                name: Tag Images
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                docker: donkeycode/docker@0.0.1
+            jobs:
+                sample:
+                    executor: docker/default
+                    steps:
+                        - docker/ecr_login
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - docker/push_images
+

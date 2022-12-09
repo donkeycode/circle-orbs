@@ -1,0 +1,161 @@
+version: 2.1
+description: |
+    Help to deploy angular projects
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    docker: donkeycode/docker@0.0.2
+    utils: donkeycode/utils@0.0.1
+commands:
+    get_workspace:
+        description: |
+            Get workspace content
+        parameters:
+            angular_folder:
+                default: apps/front
+                description: The angular base directory
+                type: string
+        steps:
+            - attach_workspace:
+                at: /tmp/workspace
+            - run:
+                command: |-
+                    cp -R /tmp/workspace/<<parameters.angular_folder>>/dist ~/project/<<parameters.angular_folder>>/dist
+                    cp -R /tmp/workspace/<<parameters.angular_folder>>/dist-circle ~/project/<<parameters.angular_folder>>/dist-circle
+                name: copy dist
+executors:
+    default:
+        description: |
+            Nodejs executor
+        docker:
+            - image: node:<<parameters.image_tag>>
+        parameters:
+            image_tag:
+                default: lts-alpine
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/_/node?tab=tags
+                type: string
+jobs:
+    build:
+        description: |
+            Prepare angular project
+        executor: docker/default
+        parameters:
+            angular_folder:
+                default: apps/front
+                description: The angular base directory
+                type: string
+            dockerfile_base_name:
+                default: Dockerfile-front
+                description: The docker base name eg Dockerfile-front
+                type: string
+            image_base_name:
+                description: The docker base name eg project/front
+                type: string
+        steps:
+            - checkout
+            - setup_remote_docker:
+                docker_layer_caching: true
+            - get_workspace:
+                angular_folder: <<parameters.angular_folder>>
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+                    - v1-dependencies-<<parameters.angular_folder>>-
+            - docker/ecr_login
+            - run:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    docker build -t ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1 -f ~/project/docker/<<parameters.dockerfile_base_name>> .
+                    docker push ${ECR_BASE}/<<parameters.image_base_name>>:$CIRCLE_SHA1
+                name: Build app
+                working_directory: ~/project
+    prepare:
+        description: |
+            Prepare angular project
+        executor: default
+        parameters:
+            angular_folder:
+                default: apps/front
+                description: The angular base directory
+                type: string
+            image_tag:
+                default: lts-alpine
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/_/node?tab=tags
+                type: string
+            use_lint:
+                default: true
+                description: |
+                    Does the project need to use lint ?
+                type: boolean
+            use_prettier:
+                default: true
+                description: |
+                    Does the project need to use prettier-check ?
+                type: boolean
+        steps:
+            - checkout
+            - utils/install_git
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+                    - v1-dependencies-<<parameters.angular_folder>>-
+            - run:
+                command: npm install
+                name: Install node deps
+                working_directory: ~/project/<<parameters.angular_folder>>
+            - save_cache:
+                key: v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+                paths:
+                    - <<parameters.angular_folder>>/node_modules
+            - when:
+                condition: <<parameters.use_lint>>
+                steps:
+                    - run:
+                        command: |
+                            source ~/project/.circleci/determine_env.sh
+                            npm run lint
+                        name: Lint angular
+                        working_directory: ~/project/<<parameters.angular_folder>>
+            - when:
+                condition: <<parameters.use_prettier>>
+                steps:
+                    - run:
+                        command: |
+                            source ~/project/.circleci/determine_env.sh
+                            npm run prettier-check
+                        name: Prettier angular
+                        working_directory: ~/project/<<parameters.angular_folder>>
+            - run:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    npm run build:circle
+                    mv dist dist-circle
+                name: Build angular for CIRCLE
+                working_directory: ~/project/<<parameters.angular_folder>>
+            - run:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    npm run build:${BUILD_ENV}
+                name: Build angular for BUILD_ENV
+                working_directory: ~/project/<<parameters.angular_folder>>
+            - persist_to_workspace:
+                paths:
+                    - <<parameters.angular_folder>>/dist
+                    - <<parameters.angular_folder>>/dist-circle
+                root: ~/project
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                angular: donkeycode/angular@0.0.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - angular/prepare
+

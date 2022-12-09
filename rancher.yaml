@@ -1,0 +1,52 @@
+version: 2.1
+description: |
+    Help to deploy rancher
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    utils: donkeycode/utils@0.0.1
+commands: {}
+executors:
+    default:
+        description: |
+            Use rancher cli
+        docker:
+            - image: donkeycode/rancher-cli
+jobs:
+    deploy:
+        description: |
+            Sample description
+        executor: default
+        parameters:
+            env:
+                default: preprod
+                description: The env to deploy
+                type: string
+            project_name:
+                description: The stack name to deploy
+                type: string
+        steps:
+            - utils/install_git
+            - checkout
+            - deploy:
+                command: |
+                    source ~/project/.circleci/determine_env.sh
+                    rancher up --force-upgrade -s <<parameters.project_name>> -d --pull
+                    sleep 30
+                    rancher up --upgrade --confirm-upgrade -s <<parameters.project_name>> -d
+                name: Deploy to rancher
+                working_directory: ~/project/deploy/<<parameters.env>>
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                <orb-name>: <namespace>/<orb-name>@1.2.3
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - <orb-name>/<job-name>
+
