@@ -6,8 +6,10 @@ description: >
 usage:
   version: 2.1
   orbs:
-    <orb-name>: <namespace>/<orb-name>@1.2.3
+    rancher: donkeycode/rancher@0.0.2
   workflows:
     use-my-orb:
       jobs:
-        - <orb-name>/<job-name>
+        - rancher/deploy:
+            env: preprod
+            project_name: my-project
