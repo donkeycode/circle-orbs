@@ -73,6 +73,9 @@ jobs:
                     Is the project need to install encore deps ?
                 type: boolean
         steps:
+            - utils/install_git
+            - run:
+                command: apk add openssh
             - checkout
             - setup_remote_docker:
                 docker_layer_caching: true
@@ -146,7 +149,7 @@ jobs:
                 steps:
                     - run:
                         command: "source ~/project/.circleci/determine_env.sh                \ndocker push <<parameters.docker_registry>><<parameters.image_crontab_name>>:$CIRCLE_SHA1\n"
-                        name: Build crontab
+                        name: Push crontab
                         working_directory: ~/project
             - when:
                 condition:
@@ -171,13 +174,64 @@ jobs:
                         root: ~/project
                     - store_artifacts:
                         path: ~/project/docker-images
+    phpunit:
+        description: |
+            Prepare symfony project
+        executor: default
+        parameters:
+            image_tag:
+                default: 8.2-fpm
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+                type: string
+            prepare_command:
+                default: |
+                    echo "Define your prepare command to setup database or anything you want"
+                description: |
+                    Define your prepare command to setup database or anything you want
+                type: string
+            symfony_folder:
+                default: apps/api
+                description: The symfony base directory
+                type: string
+            use_encore:
+                default: false
+                description: |
+                    Is the project need to install encore deps ?
+                type: boolean
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add openssh
+            - checkout
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+                name: Get site deps
+            - when:
+                condition: <<parameters.use_encore>>
+                steps:
+                    - restore_cache:
+                        keys:
+                            - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+                        name: Get npm deps
+            - restore_cache:
+                keys:
+                    - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
+                name: Get public cache
+            - run:
+                command: <<parameters.prepare_command>>
+                name: Prepare env for phpunit
+            - run:
+                command: cd <<parameters.symfony_folder>> && php bin/phpunit
+                name: Run phpunit
     prepare:
         description: |
             Prepare symfony project
         executor: default
         parameters:
             image_tag:
-                default: 8.1-fpm
+                default: 8.2-fpm
                 description: |
                     Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
                 type: string
