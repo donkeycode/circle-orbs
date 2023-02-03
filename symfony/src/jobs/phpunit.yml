@@ -1,0 +1,53 @@
+description: >
+  Prepare symfony project
+
+executor: default
+
+parameters:
+  symfony_folder:
+    type: string
+    default: "apps/api"
+    description: "The symfony base directory"
+  image_tag:
+    default: 8.2-fpm
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+    type: string
+  use_encore:
+    default: false
+    description: >
+      Is the project need to install encore deps ?
+    type: boolean
+  prepare_command:
+    default: |
+      echo "Define your prepare command to setup database or anything you want"
+    description: >
+      Define your prepare command to setup database or anything you want
+    type: string
+steps:
+  - utils/install_git
+  - run:
+      command: apk add openssh
+  - checkout
+  - restore_cache:
+      name: Get site deps
+      keys:
+        - v1-dependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/composer.lock" }}
+  - when:
+      condition: <<parameters.use_encore>>
+      steps:
+        - restore_cache:
+            name: Get npm deps
+            keys:
+              - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
+  - restore_cache:
+      name: Get public cache
+      keys:
+        - v1-public-<<parameters.symfony_folder>>-{{ .Revision }}
+  - run:
+      name: Prepare env for phpunit
+      command: <<parameters.prepare_command>>
+  - run:
+      name: Run phpunit
+      command: cd <<parameters.symfony_folder>> && php bin/phpunit

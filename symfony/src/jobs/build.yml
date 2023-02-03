@@ -139,7 +139,7 @@ steps:
               - <<parameters.use_docker_login>>
       steps:
         - run:
-            name: Build crontab
+            name: Push crontab
             working_directory: ~/project
             command: |
                 source ~/project/.circleci/determine_env.sh                

@@ -14,6 +14,8 @@ parameters:
     description: "The stack name to deploy"
 steps:
   - utils/install_git
+  - run:
+      command: apk add openssh
   - checkout
   - deploy:
       working_directory: ~/project/deploy/<<parameters.env>>
