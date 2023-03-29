@@ -71,6 +71,11 @@ commands:
                 command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_LOGIN --password-stdin $DOCKER_REGISTRY
                 name: Login to docker
 executors:
+    base:
+        description: |
+            Base executor
+        docker:
+            - image: cimg/base:2020.01
     default:
         description: |
             Docker executor
@@ -151,6 +156,14 @@ jobs:
                             docker save -o docker-images/<<parameters.image_base_name>>.$CIRCLE_SHA1.tar <<parameters.image_base_name>>:$CIRCLE_SHA1
                         name: Save image to workspace
                         working_directory: ~/project
+    purge_dlc:
+        description: |
+            Purge circle docker layer caching inspired from https://support.circleci.com/hc/en-us/articles/360007406013-How-can-I-remove-my-cached-docker-layers-
+        executor: base
+        steps:
+            - setup_remote_docker:
+                docker_layer_caching: true
+            - run: docker system prune -af
     push_images:
         description: |
             Sample description
