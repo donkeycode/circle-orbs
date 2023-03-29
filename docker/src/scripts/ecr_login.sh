@@ -18,7 +18,7 @@ else
     sudo ./aws/install -u
 fi
 
-AWS_DEFAULT_REGION=${$AWS_REGION:=eu-west-1} AWS_ACCESS_KEY_ID=$DOCKER_USER AWS_SECRET_ACCESS_KEY=$DOCKER_PASS aws ecr get-login-password |
+AWS_DEFAULT_REGION=${$AWS_REGION:'eu-west-1'} AWS_ACCESS_KEY_ID=$DOCKER_USER AWS_SECRET_ACCESS_KEY=$DOCKER_PASS aws ecr get-login-password |
   docker login \
     --username AWS \
     --password-stdin \
