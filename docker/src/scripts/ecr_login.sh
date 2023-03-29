@@ -7,9 +7,7 @@ if hash apk 2>/dev/null; then
         py-pip \
         build-base \
         && pip install six --upgrade --user \
-        && pip install awscli --upgrade --user \
-        && apk --purge -v del py-pip \
-        && rm -rf /var/cache/apk/*
+        && pip install awscli --upgrade --user
 else
     # sudo apt-get update
     sudo apt-get install -y unzip curl
