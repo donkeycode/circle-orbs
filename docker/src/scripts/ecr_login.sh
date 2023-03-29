@@ -2,10 +2,11 @@ echo "Install or Update aws cli"
 if hash apk 2>/dev/null; then
     # Install with apk
     apk add --update \
-        python \
-        python-dev \
+        python3 \
+        python3-dev \
         py-pip \
         build-base \
+        && pip install six --upgrade --user \
         && pip install awscli --upgrade --user \
         && apk --purge -v del py-pip \
         && rm -rf /var/cache/apk/*
