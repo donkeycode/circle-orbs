@@ -4,6 +4,10 @@ description: >
 executor: docker/default
 
 parameters:
+  dependencies_version:
+    type: string
+    default: v1
+    description: "The deps version to force uncaching"
   angular_folder:
     type: string
     default: "apps/front"
@@ -22,9 +26,9 @@ steps:
       angular_folder: <<parameters.angular_folder>>
   - restore_cache:
       keys:
-          - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+          - <<parameters.dependencies_version>>-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-<<parameters.angular_folder>>-
+          - <<parameters.dependencies_version>>-dependencies-<<parameters.angular_folder>>-
   - docker/ecr_login
   - run:
       name: Build app

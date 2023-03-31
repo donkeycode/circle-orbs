@@ -4,6 +4,10 @@ description: >
 executor: default
 
 parameters:
+  dependencies_version:
+    type: string
+    default: v1
+    description: "The deps version to force uncaching"
   angular_folder:
     type: string
     default: "apps/front"
@@ -29,15 +33,15 @@ steps:
   - utils/install_git
   - restore_cache:
       keys:
-          - v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+          - <<parameters.dependencies_version>>-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-<<parameters.angular_folder>>-
+          - <<parameters.dependencies_version>>-dependencies-<<parameters.angular_folder>>-
   - run:
       name: Install node deps
       working_directory: ~/project/<<parameters.angular_folder>>
       command: npm install
   - save_cache:
-      key: v1-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
+      key: <<parameters.dependencies_version>>-dependencies-<<parameters.angular_folder>>-{{ checksum "<<parameters.angular_folder>>/package-lock.json" }}
       paths:
         - <<parameters.angular_folder>>/node_modules
   - when:
