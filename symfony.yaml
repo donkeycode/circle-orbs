@@ -8,7 +8,6 @@ orbs:
     docker: donkeycode/docker@0.0.14
     node: donkeycode/node@0.0.6
     utils: donkeycode/utils@0.0.1
-commands: {}
 executors:
     default:
         description: |
@@ -17,7 +16,7 @@ executors:
             - image: donkeycode/php-nginx-symfony:<<parameters.image_tag>>
         parameters:
             image_tag:
-                default: 8.1-fpm
+                default: 8.2-fpm
                 description: |
                     Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
                 type: string
@@ -305,7 +304,7 @@ examples:
                 use-my-orb:
                     jobs:
                         - symfony/prepare:
-                            image_tag: 8.1-fpm
+                            image_tag: 8.2-fpm
                             name: Prepare Test
                             symfony_folder: apps/api
                             use_encore: true
