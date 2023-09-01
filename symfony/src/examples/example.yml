@@ -12,7 +12,7 @@ usage:
       jobs:
         - symfony/prepare:
             name: "Prepare Test"
-            image_tag: 8.1-fpm
+            image_tag: 8.2-fpm
             symfony_folder: apps/api
             use_encore: true
             
