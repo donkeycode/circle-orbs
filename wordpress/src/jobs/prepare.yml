@@ -1,0 +1,42 @@
+description: >
+  Prepare wordpress project
+
+executor: default
+
+parameters:
+  wordpress_folder:
+    type: string
+    default: "apps/site"
+    description: "The wordpress base directory"
+  image_tag:
+    default: 8.2-fpm
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+    type: string
+steps:
+  - utils/install_git
+  - run:
+      command: apk add openssh
+  - checkout
+  - restore_cache:
+      keys:
+        - v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+        # fallback to using the latest cache if no exact match is found
+        - v1-dependencies-<<parameters.wordpress_folder>>-
+  - run:
+      name: Composer 2
+      working_directory: ~/project/<<parameters.wordpress_folder>>
+      command: composer self-update --2
+  - run:
+      name: Install site deps
+      working_directory: ~/project/<<parameters.wordpress_folder>>
+      command: composer install --ignore-platform-reqs --no-interaction
+  - save_cache:
+      paths:
+        - <<parameters.wordpress_folder>>/vendor
+      key: v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+  - save_cache:
+      paths:
+        - <<parameters.wordpress_folder>>/web/wp
+      key: v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}

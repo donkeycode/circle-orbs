@@ -1,0 +1,105 @@
+version: 2.1
+description: |
+    Help to deploy wordpress projects
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    utils: donkeycode/utils@0.0.1
+executors:
+    default:
+        description: |
+            Php nginx executor
+        docker:
+            - image: donkeycode/php-nginx-symfony:<<parameters.image_tag>>
+        parameters:
+            image_tag:
+                default: 8.2-fpm
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+                type: string
+    python:
+        description: |
+            Python
+        docker:
+            - image: python:3.9.19-alpine
+jobs:
+    deploy:
+        description: |
+            Deploy wordpress project using fabfile
+        executor: python
+        parameters:
+            wordpress_folder:
+                default: apps/site
+                description: The wordpress base directory
+                type: string
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add build-base libffi-dev openssh
+            - run:
+                command: pip install --upgrade pip && pip install fabric python-dotenv
+            - checkout
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+            - restore_cache:
+                keys:
+                    - v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+            - run:
+                command: cd ~/project/<<parameters.wordpress_folder>> && fab deploy
+    prepare:
+        description: |
+            Prepare wordpress project
+        executor: default
+        parameters:
+            image_tag:
+                default: 8.2-fpm
+                description: |
+                    Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+                type: string
+            wordpress_folder:
+                default: apps/site
+                description: The wordpress base directory
+                type: string
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add openssh
+            - checkout
+            - restore_cache:
+                keys:
+                    - v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+                    - v1-dependencies-<<parameters.wordpress_folder>>-
+            - run:
+                command: composer self-update --2
+                name: Composer 2
+                working_directory: ~/project/<<parameters.wordpress_folder>>
+            - run:
+                command: composer install --ignore-platform-reqs --no-interaction
+                name: Install site deps
+                working_directory: ~/project/<<parameters.wordpress_folder>>
+            - save_cache:
+                key: v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+                paths:
+                    - <<parameters.wordpress_folder>>/vendor
+            - save_cache:
+                key: v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+                paths:
+                    - <<parameters.wordpress_folder>>/web/wp
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            version: "2.1"
+            orbs:
+                wordpress: donkeycode/wordpress@0.0.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - wordpress/prepare:
+                            image_tag: 8.2-fpm
+                            name: Prepare Test
+                            wordpress_folder: apps/wordpress
+

@@ -1,0 +1,11 @@
+description: >
+  Php nginx executor
+docker:
+  - image: 'donkeycode/php-nginx-symfony:<<parameters.image_tag>>'
+parameters:
+  image_tag:
+    default: 8.2-fpm
+    description: >
+      Pick a specific donkeycode/php-nginx-symfony image variant:
+      https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
+    type: string
