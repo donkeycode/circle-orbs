@@ -39,4 +39,5 @@ steps:
   - save_cache:
       paths:
         - <<parameters.wordpress_folder>>/web/wp
-      key: v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+        - <<parameters.wordpress_folder>>/web/app
+      key: v2-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}

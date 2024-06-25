@@ -45,7 +45,7 @@ jobs:
                     - v1-dependencies-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
             - restore_cache:
                 keys:
-                    - v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+                    - v2-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
             - run:
                 command: cd ~/project/<<parameters.wordpress_folder>> && fab deploy
     prepare:
@@ -84,9 +84,10 @@ jobs:
                 paths:
                     - <<parameters.wordpress_folder>>/vendor
             - save_cache:
-                key: v1-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
+                key: v2-wp-<<parameters.wordpress_folder>>-{{ checksum "~/project/<<parameters.wordpress_folder>>/composer.lock" }}
                 paths:
                     - <<parameters.wordpress_folder>>/web/wp
+                    - <<parameters.wordpress_folder>>/web/app
 examples:
     example:
         description: |
