@@ -52,7 +52,7 @@ commands:
                 command: |
                     # Only install nvm if it's not already installed
                     # Nvm not yet working 
-                    apk add --no-cache nodejs npm
+                    apk add --no-cache nodejs-current npm
                     # if command -v nvm &> /dev/null; then
                     #     echo "nvm is already installed. Skipping nvm install.";
                     # else
