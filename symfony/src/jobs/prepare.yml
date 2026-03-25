@@ -1,7 +1,9 @@
 description: >
   Prepare symfony project
 
-executor: default
+executor:
+  name: default
+  image_tag: <<parameters.image_tag>>
 
 parameters:
   symfony_folder:
