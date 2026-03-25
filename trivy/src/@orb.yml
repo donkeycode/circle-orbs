@@ -12,5 +12,5 @@ display:
 
 # If your orb requires other orbs, you can import them like this. Otherwise remove the "orbs" stanza.
 orbs:
- docker: donkeycode/docker@0.0.4
+ docker: donkeycode/docker@0.0.27
  utils: donkeycode/utils@0.0.5

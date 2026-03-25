@@ -11,6 +11,10 @@ parameters:
   files:
     type: string
     description: "List of files to scan"
+  use_ecr:
+    type: boolean
+    default: true
+    description: "Set false to use standard docker login"
   mail_from:
     type: string
     default: "hosting@donkeycode.com"
@@ -25,7 +29,15 @@ parameters:
 steps:
   - checkout
   - setup_remote_docker:  { docker_layer_caching: true }
-  - docker/ecr_login
+  - when:
+      condition: <<parameters.use_ecr>>
+      steps:
+        - docker/ecr_login
+  - when:
+      condition:
+        not: <<parameters.use_ecr>>
+      steps:
+        - docker/login
   - install
   - scan:
       images: <<parameters.images>>

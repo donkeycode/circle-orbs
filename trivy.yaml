@@ -5,7 +5,7 @@ display:
     home_url: https://github.com/donkeycode/circle-orbs
     source_url: https://github.com/donkeycode/circle-orbs
 orbs:
-    docker: donkeycode/docker@0.0.4
+    docker: donkeycode/docker@0.0.27
     utils: donkeycode/utils@0.0.5
 commands:
     install:
@@ -209,11 +209,23 @@ jobs:
             mail_to:
                 description: Mail Report To
                 type: string
+            use_ecr:
+                default: true
+                description: Set false to use standard docker login
+                type: boolean
         steps:
             - checkout
             - setup_remote_docker:
                 docker_layer_caching: true
-            - docker/ecr_login
+            - when:
+                condition: <<parameters.use_ecr>>
+                steps:
+                    - docker/ecr_login
+            - when:
+                condition:
+                    not: <<parameters.use_ecr>>
+                steps:
+                    - docker/login
             - install
             - scan:
                 files: <<parameters.files>>
