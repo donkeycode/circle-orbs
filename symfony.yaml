@@ -5,9 +5,9 @@ display:
     home_url: https://github.com/donkeycode/circle-orbs
     source_url: https://github.com/donkeycode/circle-orbs
 orbs:
-    docker: donkeycode/docker@0.0.14
-    node: donkeycode/node@0.0.6
-    utils: donkeycode/utils@0.0.1
+    docker: donkeycode/docker@0.0.27
+    node: donkeycode/node@0.0.8
+    utils: donkeycode/utils@0.0.5
 executors:
     default:
         description: |
@@ -74,7 +74,10 @@ jobs:
         steps:
             - utils/install_git
             - run:
-                command: apk add openssh
+                command: |
+                    apk update
+                    apk upgrade
+                    apk add --force-overwrite openssh
             - checkout
             - setup_remote_docker:
                 docker_layer_caching: true
@@ -230,7 +233,7 @@ jobs:
         executor: default
         parameters:
             image_tag:
-                default: 8.2-fpm
+                default: 8.4-fpm
                 description: |
                     Pick a specific donkeycode/php-nginx-symfony image variant: https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
                 type: string
@@ -263,7 +266,8 @@ jobs:
             - when:
                 condition: <<parameters.use_encore>>
                 steps:
-                    - node/install
+                    - node/install:
+                        install-npm: false
                     - restore_cache:
                         keys:
                             - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}

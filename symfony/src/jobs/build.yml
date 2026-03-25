@@ -53,7 +53,10 @@ parameters:
 steps:
   - utils/install_git
   - run:
-      command: apk add openssh
+      command: |
+          apk update
+          apk upgrade
+          apk add --force-overwrite openssh
   - checkout
   - setup_remote_docker:  { docker_layer_caching: true }
   - restore_cache:

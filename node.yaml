@@ -96,7 +96,7 @@ commands:
             - run:
                 command: |
                     apk add --no-cache npm
-                    npm i -g npm@latest
+                    npm i -g npm@${NODE_PARAM_NPM_VERSION}
                 environment:
                     NODE_PARAM_NPM_VERSION: <<parameters.version>>
                 name: Install NPM

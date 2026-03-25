@@ -9,7 +9,7 @@ parameters:
     default: "apps/api"
     description: "The symfony base directory"
   image_tag:
-    default: 8.2-fpm
+    default: 8.4-fpm
     description: >
       Pick a specific donkeycode/php-nginx-symfony image variant:
       https://hub.docker.com/r/donkeycode/php-nginx-symfony/tags
@@ -40,7 +40,8 @@ steps:
   - when:
       condition: <<parameters.use_encore>>
       steps:
-        - node/install
+        - node/install:
+            install-npm: false
         - restore_cache:
             keys:
               - v1-npmdependencies-<<parameters.symfony_folder>>-{{ checksum "~/project/<<parameters.symfony_folder>>/package-lock.json" }}
