@@ -1,0 +1,14 @@
+description: >
+  Deploy a project to MKS (preprod) after building/pushing its image to Harbor.
+usage:
+  version: 2.1
+  orbs:
+    rancher2: donkeycode/rancher2@0.0.1
+  workflows:
+    deploy:
+      jobs:
+        - rancher2/deploy:
+            project_name: kinousassur
+            env: ppd
+            image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
+            context: mks-kinousassur

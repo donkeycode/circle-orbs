@@ -35,5 +35,70 @@ executors:
             Image with helm + kubectl (Alpine based, apk available for git/openssh).
         docker:
             - image: dtzar/helm-kubectl:3.14.4
-jobs: {}
+jobs:
+    deploy:
+        description: |
+            Deploy a project to MKS with helm upgrade --install. Image tag is the commit SHA. Optional per-env values file is applied if present.
+        executor: default
+        parameters:
+            chart_path:
+                default: deploy/chart
+                description: Path to the Helm chart in the repo.
+                type: string
+            env:
+                description: Target env (e.g. ppd, prod). Used for the namespace and the optional values file.
+                type: string
+            image_repository:
+                description: Full image repository to deploy (e.g. pqngjr40.gra7.container-registry.ovh.net/kinousassur/form).
+                type: string
+            namespace:
+                default: <<parameters.project_name>>-<<parameters.env>>
+                description: Target namespace (default <project>-<env>).
+                type: string
+            project_name:
+                description: Project / Helm release name (e.g. kinousassur).
+                type: string
+            release_name:
+                default: <<parameters.project_name>>-<<parameters.env>>
+                description: Helm release name (default <project>-<env>).
+                type: string
+        steps:
+            - utils/install_git
+            - run:
+                command: apk add --no-cache openssh
+                name: Install openssh (checkout over ssh)
+            - checkout
+            - kube_login:
+                namespace: <<parameters.namespace>>
+            - run:
+                command: |
+                    set -e
+                    CHART="<<parameters.chart_path>>"
+                    EXTRA=""
+                    if [ -f "$CHART/values.<<parameters.env>>.yaml" ]; then
+                      EXTRA="-f $CHART/values.<<parameters.env>>.yaml"
+                    fi
+                    helm upgrade --install --wait --cleanup-on-fail \
+                      "<<parameters.release_name>>" "$CHART" \
+                      --namespace "<<parameters.namespace>>" \
+                      -f "$CHART/values.yaml" $EXTRA \
+                      --set image.repository="<<parameters.image_repository>>" \
+                      --set image.tag="$CIRCLE_SHA1"
+                name: Helm upgrade
+examples:
+    example:
+        description: |
+            Deploy a project to MKS (preprod) after building/pushing its image to Harbor.
+        usage:
+            version: "2.1"
+            orbs:
+                rancher2: donkeycode/rancher2@0.0.1
+            workflows:
+                deploy:
+                    jobs:
+                        - rancher2/deploy:
+                            context: mks-kinousassur
+                            env: ppd
+                            image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
+                            project_name: kinousassur
 

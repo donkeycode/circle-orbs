@@ -1,0 +1,52 @@
+description: >
+  Deploy a project to MKS with helm upgrade --install.
+  Image tag is the commit SHA. Optional per-env values file is applied if present.
+
+executor: default
+
+parameters:
+  project_name:
+    type: string
+    description: "Project / Helm release name (e.g. kinousassur)."
+  env:
+    type: string
+    description: "Target env (e.g. ppd, prod). Used for the namespace and the optional values file."
+  namespace:
+    type: string
+    default: "<<parameters.project_name>>-<<parameters.env>>"
+    description: "Target namespace (default <project>-<env>)."
+  chart_path:
+    type: string
+    default: "deploy/chart"
+    description: "Path to the Helm chart in the repo."
+  image_repository:
+    type: string
+    description: "Full image repository to deploy (e.g. pqngjr40.gra7.container-registry.ovh.net/kinousassur/form)."
+  release_name:
+    type: string
+    default: "<<parameters.project_name>>-<<parameters.env>>"
+    description: "Helm release name (default <project>-<env>)."
+
+steps:
+  - utils/install_git
+  - run:
+      name: Install openssh (checkout over ssh)
+      command: apk add --no-cache openssh
+  - checkout
+  - kube_login:
+      namespace: <<parameters.namespace>>
+  - run:
+      name: Helm upgrade
+      command: |
+        set -e
+        CHART="<<parameters.chart_path>>"
+        EXTRA=""
+        if [ -f "$CHART/values.<<parameters.env>>.yaml" ]; then
+          EXTRA="-f $CHART/values.<<parameters.env>>.yaml"
+        fi
+        helm upgrade --install --wait --cleanup-on-fail \
+          "<<parameters.release_name>>" "$CHART" \
+          --namespace "<<parameters.namespace>>" \
+          -f "$CHART/values.yaml" $EXTRA \
+          --set image.repository="<<parameters.image_repository>>" \
+          --set image.tag="$CIRCLE_SHA1"
