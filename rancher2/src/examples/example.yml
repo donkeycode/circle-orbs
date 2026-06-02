@@ -9,6 +9,6 @@ usage:
       jobs:
         - rancher2/deploy:
             project_name: kinousassur
-            env: ppd
+            env: preprod
             image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
             context: mks-kinousassur
