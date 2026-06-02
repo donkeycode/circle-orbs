@@ -19,7 +19,8 @@ workflows:
           # image_tag defaults to <env> (preprod/prod) ; rollout is forced anyway
           context:
             - mks                            # global: KUBE_SERVER + KUBE_CA_B64
-            - mks-kinousassur                # per-project: KUBE_TOKEN (scoped SA)
+          # KUBE_TOKEN comes from the PROJECT's CircleCI env vars (scoped SA token),
+          # not a dedicated mks-<project> context.
 ```
 
 ## Image tag & rollout (legacy behaviour)
@@ -33,15 +34,16 @@ of `rancher up --force-upgrade --pull`.
 ## Auth — CircleCI context contract
 
 The `kube_login` command builds a kubeconfig from these env vars (it FAILS with a clear
-message if any is missing). Split across two contexts so the cluster-wide values are not
-duplicated per project, while the token stays scoped per project:
+message if any is missing). Cluster-wide values live in a shared context; the scoped token
+lives at the project level:
 
-| Variable | Scope | Context (suggested) | Source (Terraform) |
-|----------|-------|---------------------|--------------------|
-| `KUBE_SERVER` | cluster-wide (generic) | global, e.g. `mks` | MKS kubeconfig (`...clusters[0].cluster.server`) |
-| `KUBE_CA_B64` | cluster-wide (generic) | global, e.g. `mks` | MKS cluster CA, base64 |
-| `KUBE_TOKEN` | **per project** (scoped SA) | per-project, e.g. `mks-<project>` | `module.<project>_<env>_deployer.token` |
+| Variable | Scope | Where | Source (Terraform) |
+|----------|-------|-------|--------------------|
+| `KUBE_SERVER` | cluster-wide (generic) | global context, e.g. `mks` | `mks_ci_kube_server` |
+| `KUBE_CA_B64` | cluster-wide (generic) | global context, e.g. `mks` | `mks_ci_kube_ca_b64` |
+| `KUBE_TOKEN` | **per project** (scoped SA) | the **project's CircleCI env vars** | `module.<project>_<env>_deployer.token` |
 
 The per-project token comes from a ServiceAccount scoped to the project namespace
 (module `mks_deployer`) → the CI can only act on that one namespace (blast radius minimal).
-Attach BOTH contexts to the job: `context: [mks, mks-<project>]`.
+Attach the `mks` context to the job (`context: mks`); `KUBE_TOKEN` is injected from the
+project's environment variables — no dedicated `mks-<project>` context needed.
