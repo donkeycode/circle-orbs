@@ -9,7 +9,7 @@ orbs:
 commands:
     kube_login:
         description: |
-            Build a kubeconfig from a scoped ServiceAccount token. Reads KUBE_SERVER / KUBE_TOKEN / KUBE_CA_B64 from the CircleCI context (provided by the Terraform module mks_deployer). No admin kubeconfig.
+            Build a kubeconfig from a scoped ServiceAccount token. Reads KUBE_SERVER / KUBE_CA_B64 (generic, cluster-wide — a global context like 'mks') and KUBE_TOKEN (project-scoped SA token — a per-project context like 'mks-<project>') from the attached CircleCI context(s). Values come from the Terraform module mks_deployer. No admin kubeconfig.
         parameters:
             namespace:
                 description: Namespace the ServiceAccount is scoped to.
@@ -18,6 +18,9 @@ commands:
             - run:
                 command: |
                     set -e
+                    : "${KUBE_SERVER:?KUBE_SERVER manquant — attache le contexte cluster (ex: mks) qui le porte}"
+                    : "${KUBE_TOKEN:?KUBE_TOKEN manquant — attache le contexte projet (ex: mks-<projet>) qui porte le token du SA}"
+                    : "${KUBE_CA_B64:?KUBE_CA_B64 manquant — attache le contexte cluster (ex: mks) qui le porte}"
                     echo "$KUBE_CA_B64" | base64 -d > /tmp/mks-ca.crt
                     kubectl config set-cluster mks \
                       --server="$KUBE_SERVER" \
@@ -38,7 +41,7 @@ executors:
 jobs:
     deploy:
         description: |
-            Deploy a project to MKS with helm upgrade --install. Image tag is the commit SHA. Optional per-env values file is applied if present.
+            Deploy a project to MKS with helm upgrade --install. Deploys the env-named image tag (preprod/prod, legacy syntax) and FORCES a rollout on that same tag via deployRevision=$CIRCLE_SHA1 (equivalent of rancher up --force-upgrade --pull). Optional per-env values file (values.<env>.yaml) is applied if present.
         executor: default
         parameters:
             chart_path:
@@ -46,10 +49,14 @@ jobs:
                 description: Path to the Helm chart in the repo.
                 type: string
             env:
-                description: Target env (e.g. ppd, prod). Used for the namespace and the optional values file.
+                description: Target env (e.g. preprod, prod). Used for the namespace and the optional values file.
                 type: string
             image_repository:
                 description: Full image repository to deploy (e.g. pqngjr40.gra7.container-registry.ovh.net/kinousassur/form).
+                type: string
+            image_tag:
+                default: <<parameters.env>>
+                description: Image tag to deploy. Default = env (preprod/prod), like legacy. Rollout is forced via deployRevision even if the tag is unchanged.
                 type: string
             namespace:
                 default: <<parameters.project_name>>-<<parameters.env>>
@@ -83,7 +90,8 @@ jobs:
                       --namespace "<<parameters.namespace>>" \
                       -f "$CHART/values.yaml" $EXTRA \
                       --set image.repository="<<parameters.image_repository>>" \
-                      --set image.tag="$CIRCLE_SHA1"
+                      --set image.tag="<<parameters.image_tag>>" \
+                      --set deployRevision="$CIRCLE_SHA1"
                 name: Helm upgrade
 examples:
     example:
@@ -98,7 +106,7 @@ examples:
                     jobs:
                         - rancher2/deploy:
                             context: mks-kinousassur
-                            env: ppd
+                            env: preprod
                             image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
                             project_name: kinousassur
 

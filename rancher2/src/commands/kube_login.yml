@@ -1,7 +1,9 @@
 description: >
   Build a kubeconfig from a scoped ServiceAccount token.
-  Reads KUBE_SERVER / KUBE_TOKEN / KUBE_CA_B64 from the CircleCI context
-  (provided by the Terraform module mks_deployer). No admin kubeconfig.
+  Reads KUBE_SERVER / KUBE_CA_B64 (generic, cluster-wide — a global context like 'mks')
+  and KUBE_TOKEN (project-scoped SA token — a per-project context like 'mks-<project>')
+  from the attached CircleCI context(s). Values come from the Terraform module mks_deployer.
+  No admin kubeconfig.
 
 parameters:
   namespace:
@@ -13,6 +15,9 @@ steps:
       name: Configure kubectl from scoped ServiceAccount
       command: |
         set -e
+        : "${KUBE_SERVER:?KUBE_SERVER manquant — attache le contexte cluster (ex: mks) qui le porte}"
+        : "${KUBE_TOKEN:?KUBE_TOKEN manquant — attache le contexte projet (ex: mks-<projet>) qui porte le token du SA}"
+        : "${KUBE_CA_B64:?KUBE_CA_B64 manquant — attache le contexte cluster (ex: mks) qui le porte}"
         echo "$KUBE_CA_B64" | base64 -d > /tmp/mks-ca.crt
         kubectl config set-cluster mks \
           --server="$KUBE_SERVER" \

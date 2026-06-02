@@ -1,6 +1,8 @@
 description: >
   Deploy a project to MKS with helm upgrade --install.
-  Image tag is the commit SHA. Optional per-env values file is applied if present.
+  Deploys the env-named image tag (preprod/prod, legacy syntax) and FORCES a rollout
+  on that same tag via deployRevision=$CIRCLE_SHA1 (equivalent of rancher up --force-upgrade
+  --pull). Optional per-env values file (values.<env>.yaml) is applied if present.
 
 executor: default
 
@@ -10,7 +12,7 @@ parameters:
     description: "Project / Helm release name (e.g. kinousassur)."
   env:
     type: string
-    description: "Target env (e.g. ppd, prod). Used for the namespace and the optional values file."
+    description: "Target env (e.g. preprod, prod). Used for the namespace and the optional values file."
   namespace:
     type: string
     default: "<<parameters.project_name>>-<<parameters.env>>"
@@ -22,6 +24,10 @@ parameters:
   image_repository:
     type: string
     description: "Full image repository to deploy (e.g. pqngjr40.gra7.container-registry.ovh.net/kinousassur/form)."
+  image_tag:
+    type: string
+    default: "<<parameters.env>>"
+    description: "Image tag to deploy. Default = env (preprod/prod), like legacy. Rollout is forced via deployRevision even if the tag is unchanged."
   release_name:
     type: string
     default: "<<parameters.project_name>>-<<parameters.env>>"
@@ -49,4 +55,5 @@ steps:
           --namespace "<<parameters.namespace>>" \
           -f "$CHART/values.yaml" $EXTRA \
           --set image.repository="<<parameters.image_repository>>" \
-          --set image.tag="$CIRCLE_SHA1"
+          --set image.tag="<<parameters.image_tag>>" \
+          --set deployRevision="$CIRCLE_SHA1"
