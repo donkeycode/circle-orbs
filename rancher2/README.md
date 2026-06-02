@@ -7,7 +7,7 @@ Companion of `donkeycode/rancher` (Rancher 1), which stays untouched.
 
 ```yaml
 orbs:
-  rancher2: donkeycode/rancher2@0.0.1
+  rancher2: donkeycode/rancher2@0.0.2
 workflows:
   deploy:
     jobs:
