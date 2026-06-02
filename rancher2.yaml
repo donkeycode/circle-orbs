@@ -1,0 +1,17 @@
+version: 2.1
+description: |
+    Deploy a project to Rancher 2 / managed Kubernetes (MKS) via Helm. Companion of the legacy donkeycode/rancher orb (Rancher 1), left untouched.
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+orbs:
+    utils: donkeycode/utils@0.0.2
+commands: {}
+executors:
+    default:
+        description: |
+            Image with helm + kubectl (Alpine based, apk available for git/openssh).
+        docker:
+            - image: dtzar/helm-kubectl:3.14.4
+jobs: {}
+

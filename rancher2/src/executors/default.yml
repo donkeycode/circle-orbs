@@ -1,0 +1,4 @@
+description: >
+  Image with helm + kubectl (Alpine based, apk available for git/openssh).
+docker:
+  - image: dtzar/helm-kubectl:3.14.4
