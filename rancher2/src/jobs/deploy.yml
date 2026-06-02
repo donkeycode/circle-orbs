@@ -15,8 +15,7 @@ parameters:
     description: "Target env (e.g. preprod, prod). Used for the namespace and the optional values file."
   namespace:
     type: string
-    default: "<<parameters.project_name>>-<<parameters.env>>"
-    description: "Target namespace (default <project>-<env>)."
+    description: "Target namespace (required, e.g. kinousassur-ppd). CircleCI interdit un default qui référence un autre paramètre."
   chart_path:
     type: string
     default: "deploy/chart"
@@ -26,12 +25,12 @@ parameters:
     description: "Full image repository to deploy (e.g. pqngjr40.gra7.container-registry.ovh.net/kinousassur/form)."
   image_tag:
     type: string
-    default: "<<parameters.env>>"
-    description: "Image tag to deploy. Default = env (preprod/prod), like legacy. Rollout is forced via deployRevision even if the tag is unchanged."
+    default: ""
+    description: "Image tag to deploy. Empty => defaults to <env> (preprod/prod), like legacy. Rollout is forced via deployRevision even if the tag is unchanged."
   release_name:
     type: string
-    default: "<<parameters.project_name>>-<<parameters.env>>"
-    description: "Helm release name (default <project>-<env>)."
+    default: ""
+    description: "Helm release name. Empty => defaults to the namespace value."
 
 steps:
   - utils/install_git
@@ -46,14 +45,19 @@ steps:
       command: |
         set -e
         CHART="<<parameters.chart_path>>"
+        # Valeurs dérivées calculées ICI (un default de paramètre ne peut pas référencer un autre paramètre).
+        TAG="<<parameters.image_tag>>"
+        [ -z "$TAG" ] && TAG="<<parameters.env>>"
+        RELEASE="<<parameters.release_name>>"
+        [ -z "$RELEASE" ] && RELEASE="<<parameters.namespace>>"
         EXTRA=""
         if [ -f "$CHART/values.<<parameters.env>>.yaml" ]; then
           EXTRA="-f $CHART/values.<<parameters.env>>.yaml"
         fi
         helm upgrade --install --wait --cleanup-on-fail \
-          "<<parameters.release_name>>" "$CHART" \
+          "$RELEASE" "$CHART" \
           --namespace "<<parameters.namespace>>" \
           -f "$CHART/values.yaml" $EXTRA \
           --set image.repository="<<parameters.image_repository>>" \
-          --set image.tag="<<parameters.image_tag>>" \
+          --set image.tag="$TAG" \
           --set deployRevision="$CIRCLE_SHA1"
