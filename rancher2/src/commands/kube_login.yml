@@ -1,14 +1,24 @@
 description: >
   Build a kubeconfig from a scoped ServiceAccount token.
   Reads KUBE_SERVER / KUBE_CA_B64 (generic, cluster-wide — a global context like 'mks')
-  and KUBE_TOKEN (project-scoped SA token — a per-project context like 'mks-<project>')
-  from the attached CircleCI context(s). Values come from the Terraform module mks_deployer.
-  No admin kubeconfig.
+  and a per-ENV token from the CircleCI PROJECT env vars. Because preprod and prod share
+  the SAME CircleCI project, the token cannot use a single name: by default this command
+  resolves KUBE_TOKEN_<ENV> (e.g. KUBE_TOKEN_PREPROD / KUBE_TOKEN_PROD). Override the var
+  name with `token_var`; falls back to the legacy KUBE_TOKEN if the per-env var is empty.
+  Values come from the Terraform module mks_deployer. No admin kubeconfig.
 
 parameters:
   namespace:
     type: string
     description: "Namespace the ServiceAccount is scoped to."
+  env:
+    type: string
+    default: ""
+    description: "Target env (preprod/prod). Used to derive the token var name KUBE_TOKEN_<ENV> when token_var is empty."
+  token_var:
+    type: string
+    default: ""
+    description: "Explicit name of the project env var holding the SA token. Empty => KUBE_TOKEN_<ENV> (uppercased), then legacy KUBE_TOKEN as fallback."
 
 steps:
   - run:
@@ -16,14 +26,29 @@ steps:
       command: |
         set -e
         : "${KUBE_SERVER:?KUBE_SERVER manquant — attache le contexte cluster (ex: mks) qui le porte}"
-        : "${KUBE_TOKEN:?KUBE_TOKEN manquant — attache le contexte projet (ex: mks-<projet>) qui porte le token du SA}"
         : "${KUBE_CA_B64:?KUBE_CA_B64 manquant — attache le contexte cluster (ex: mks) qui le porte}"
+
+        # Résolution du token : nom explicite (token_var) sinon KUBE_TOKEN_<ENV>. Un projet
+        # CircleCI = un seul jeu de variables → ppd et prod NE PEUVENT PAS partager 'KUBE_TOKEN'.
+        TOKEN_VAR="<<parameters.token_var>>"
+        if [ -z "$TOKEN_VAR" ] && [ -n "<<parameters.env>>" ]; then
+          ENV_UPPER=$(printf '%s' "<<parameters.env>>" | tr '[:lower:]' '[:upper:]')
+          TOKEN_VAR="KUBE_TOKEN_${ENV_UPPER}"
+        fi
+        TOKEN=""
+        if [ -n "$TOKEN_VAR" ]; then
+          eval "TOKEN=\${$TOKEN_VAR:-}"
+        fi
+        # Repli legacy : ancienne variable unique KUBE_TOKEN.
+        [ -z "$TOKEN" ] && TOKEN="${KUBE_TOKEN:-}"
+        : "${TOKEN:?Token absent — definir ${TOKEN_VAR:-KUBE_TOKEN_<ENV>} (KUBE_TOKEN_PREPROD / KUBE_TOKEN_PROD) dans les variables du PROJET CircleCI}"
+
         echo "$KUBE_CA_B64" | base64 -d > /tmp/mks-ca.crt
         kubectl config set-cluster mks \
           --server="$KUBE_SERVER" \
           --certificate-authority=/tmp/mks-ca.crt \
           --embed-certs=true
-        kubectl config set-credentials deployer --token="$KUBE_TOKEN"
+        kubectl config set-credentials deployer --token="$TOKEN"
         kubectl config set-context mks \
           --cluster=mks --user=deployer --namespace="<<parameters.namespace>>"
         kubectl config use-context mks

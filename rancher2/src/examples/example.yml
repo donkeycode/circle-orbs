@@ -3,12 +3,17 @@ description: >
 usage:
   version: 2.1
   orbs:
-    rancher2: donkeycode/rancher2@0.0.2
+    rancher2: donkeycode/rancher2@0.0.5
   workflows:
     deploy:
       jobs:
         - rancher2/deploy:
             project_name: kinousassur
             env: preprod
+            namespace: kinousassur-ppd
             image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
-            context: mks-kinousassur
+            # Contexte global 'mks' = KUBE_SERVER + KUBE_CA_B64. Le token vient des variables
+            # d'env DU PROJET, suffixées par env (KUBE_TOKEN_PREPROD ici) : l'orb dérive
+            # KUBE_TOKEN_<ENV> depuis 'env'. Pas de contexte mks-<projet>.
+            context:
+              - mks

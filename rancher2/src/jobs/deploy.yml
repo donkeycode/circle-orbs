@@ -31,6 +31,10 @@ parameters:
     type: string
     default: ""
     description: "Helm release name. Empty => defaults to the namespace value."
+  kube_token_var:
+    type: string
+    default: ""
+    description: "Project env var holding the SA token. Empty => KUBE_TOKEN_<ENV> (ppd/prod ne peuvent pas partager un seul KUBE_TOKEN sur le meme projet CircleCI)."
 
 steps:
   - utils/install_git
@@ -40,11 +44,21 @@ steps:
   - checkout
   - kube_login:
       namespace: <<parameters.namespace>>
+      env: <<parameters.env>>
+      token_var: <<parameters.kube_token_var>>
   - run:
       name: Helm upgrade
       command: |
         set -e
         CHART="<<parameters.chart_path>>"
+        # Un cluster Rancher/MKS expose BEAUCOUP de CRDs ; la phase de discovery de helm sature
+        # alors le rate-limiter client-go ("client rate limiter Wait ... context deadline exceeded").
+        # Le burst doit DÉPASSER le nb de group-versions interrogées (souvent >200 sur Rancher) :
+        # on prend large (throttle CLIENT, l'API se protège seule via API Priority & Fairness).
+        # Défauts surchargeables via le contexte/projet CircleCI.
+        : "${HELM_BURST_LIMIT:=1000}"
+        : "${HELM_QPS:=300}"
+        export HELM_BURST_LIMIT HELM_QPS
         # Valeurs dérivées calculées ICI (un default de paramètre ne peut pas référencer un autre paramètre).
         TAG="<<parameters.image_tag>>"
         [ -z "$TAG" ] && TAG="<<parameters.env>>"

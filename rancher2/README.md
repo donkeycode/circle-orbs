@@ -7,7 +7,7 @@ Companion of `donkeycode/rancher` (Rancher 1), which stays untouched.
 
 ```yaml
 orbs:
-  rancher2: donkeycode/rancher2@0.0.2
+  rancher2: donkeycode/rancher2@0.0.5
 workflows:
   deploy:
     jobs:
@@ -19,8 +19,9 @@ workflows:
           # image_tag defaults to <env> (preprod/prod) ; rollout is forced anyway
           context:
             - mks                            # global: KUBE_SERVER + KUBE_CA_B64
-          # KUBE_TOKEN comes from the PROJECT's CircleCI env vars (scoped SA token),
-          # not a dedicated mks-<project> context.
+          # The SA token comes from the PROJECT's CircleCI env vars. preprod & prod share the
+          # SAME project, so the var is env-suffixed: the orb derives KUBE_TOKEN_<ENV> from `env`
+          # (preprod -> KUBE_TOKEN_PREPROD, prod -> KUBE_TOKEN_PROD). Override via kube_token_var.
 ```
 
 ## Image tag & rollout (legacy behaviour)
@@ -41,9 +42,12 @@ lives at the project level:
 |----------|-------|-------|--------------------|
 | `KUBE_SERVER` | cluster-wide (generic) | global context, e.g. `mks` | `mks_ci_kube_server` |
 | `KUBE_CA_B64` | cluster-wide (generic) | global context, e.g. `mks` | `mks_ci_kube_ca_b64` |
-| `KUBE_TOKEN` | **per project** (scoped SA) | the **project's CircleCI env vars** | `module.<project>_<env>_deployer.token` |
+| `KUBE_TOKEN_<ENV>` (e.g. `KUBE_TOKEN_PREPROD` / `KUBE_TOKEN_PROD`) | **per project, per env** (scoped SA) | the **project's CircleCI env vars** | `module.<project>_<env>_deployer.token` |
 
 The per-project token comes from a ServiceAccount scoped to the project namespace
 (module `mks_deployer`) → the CI can only act on that one namespace (blast radius minimal).
-Attach the `mks` context to the job (`context: mks`); `KUBE_TOKEN` is injected from the
-project's environment variables — no dedicated `mks-<project>` context needed.
+preprod and prod share the SAME CircleCI project, so a single `KUBE_TOKEN` name can't hold
+both: variables are **env-suffixed**. Attach the `mks` context (`context: mks`); the orb
+resolves `KUBE_TOKEN_<ENV>` from its `env` parameter (override with `kube_token_var`), and
+falls back to a legacy plain `KUBE_TOKEN` if the suffixed one is absent. No dedicated
+`mks-<project>` context needed.

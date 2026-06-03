@@ -9,24 +9,47 @@ orbs:
 commands:
     kube_login:
         description: |
-            Build a kubeconfig from a scoped ServiceAccount token. Reads KUBE_SERVER / KUBE_CA_B64 (generic, cluster-wide — a global context like 'mks') and KUBE_TOKEN (project-scoped SA token — a per-project context like 'mks-<project>') from the attached CircleCI context(s). Values come from the Terraform module mks_deployer. No admin kubeconfig.
+            Build a kubeconfig from a scoped ServiceAccount token. Reads KUBE_SERVER / KUBE_CA_B64 (generic, cluster-wide — a global context like 'mks') and a per-ENV token from the CircleCI PROJECT env vars. Because preprod and prod share the SAME CircleCI project, the token cannot use a single name: by default this command resolves KUBE_TOKEN_<ENV> (e.g. KUBE_TOKEN_PREPROD / KUBE_TOKEN_PROD). Override the var name with `token_var`; falls back to the legacy KUBE_TOKEN if the per-env var is empty. Values come from the Terraform module mks_deployer. No admin kubeconfig.
         parameters:
+            env:
+                default: ""
+                description: Target env (preprod/prod). Used to derive the token var name KUBE_TOKEN_<ENV> when token_var is empty.
+                type: string
             namespace:
                 description: Namespace the ServiceAccount is scoped to.
+                type: string
+            token_var:
+                default: ""
+                description: Explicit name of the project env var holding the SA token. Empty => KUBE_TOKEN_<ENV> (uppercased), then legacy KUBE_TOKEN as fallback.
                 type: string
         steps:
             - run:
                 command: |
                     set -e
                     : "${KUBE_SERVER:?KUBE_SERVER manquant — attache le contexte cluster (ex: mks) qui le porte}"
-                    : "${KUBE_TOKEN:?KUBE_TOKEN manquant — attache le contexte projet (ex: mks-<projet>) qui porte le token du SA}"
                     : "${KUBE_CA_B64:?KUBE_CA_B64 manquant — attache le contexte cluster (ex: mks) qui le porte}"
+
+                    # Résolution du token : nom explicite (token_var) sinon KUBE_TOKEN_<ENV>. Un projet
+                    # CircleCI = un seul jeu de variables → ppd et prod NE PEUVENT PAS partager 'KUBE_TOKEN'.
+                    TOKEN_VAR="<<parameters.token_var>>"
+                    if [ -z "$TOKEN_VAR" ] && [ -n "<<parameters.env>>" ]; then
+                      ENV_UPPER=$(printf '%s' "<<parameters.env>>" | tr '[:lower:]' '[:upper:]')
+                      TOKEN_VAR="KUBE_TOKEN_${ENV_UPPER}"
+                    fi
+                    TOKEN=""
+                    if [ -n "$TOKEN_VAR" ]; then
+                      eval "TOKEN=\${$TOKEN_VAR:-}"
+                    fi
+                    # Repli legacy : ancienne variable unique KUBE_TOKEN.
+                    [ -z "$TOKEN" ] && TOKEN="${KUBE_TOKEN:-}"
+                    : "${TOKEN:?Token absent — definir ${TOKEN_VAR:-KUBE_TOKEN_<ENV>} (KUBE_TOKEN_PREPROD / KUBE_TOKEN_PROD) dans les variables du PROJET CircleCI}"
+
                     echo "$KUBE_CA_B64" | base64 -d > /tmp/mks-ca.crt
                     kubectl config set-cluster mks \
                       --server="$KUBE_SERVER" \
                       --certificate-authority=/tmp/mks-ca.crt \
                       --embed-certs=true
-                    kubectl config set-credentials deployer --token="$KUBE_TOKEN"
+                    kubectl config set-credentials deployer --token="$TOKEN"
                     kubectl config set-context mks \
                       --cluster=mks --user=deployer --namespace="<<parameters.namespace>>"
                     kubectl config use-context mks
@@ -58,6 +81,10 @@ jobs:
                 default: ""
                 description: Image tag to deploy. Empty => defaults to <env> (preprod/prod), like legacy. Rollout is forced via deployRevision even if the tag is unchanged.
                 type: string
+            kube_token_var:
+                default: ""
+                description: Project env var holding the SA token. Empty => KUBE_TOKEN_<ENV> (ppd/prod ne peuvent pas partager un seul KUBE_TOKEN sur le meme projet CircleCI).
+                type: string
             namespace:
                 description: Target namespace (required, e.g. kinousassur-ppd). CircleCI interdit un default qui référence un autre paramètre.
                 type: string
@@ -75,11 +102,21 @@ jobs:
                 name: Install openssh (checkout over ssh)
             - checkout
             - kube_login:
+                env: <<parameters.env>>
                 namespace: <<parameters.namespace>>
+                token_var: <<parameters.kube_token_var>>
             - run:
                 command: |
                     set -e
                     CHART="<<parameters.chart_path>>"
+                    # Un cluster Rancher/MKS expose BEAUCOUP de CRDs ; la phase de discovery de helm sature
+                    # alors le rate-limiter client-go ("client rate limiter Wait ... context deadline exceeded").
+                    # Le burst doit DÉPASSER le nb de group-versions interrogées (souvent >200 sur Rancher) :
+                    # on prend large (throttle CLIENT, l'API se protège seule via API Priority & Fairness).
+                    # Défauts surchargeables via le contexte/projet CircleCI.
+                    : "${HELM_BURST_LIMIT:=1000}"
+                    : "${HELM_QPS:=300}"
+                    export HELM_BURST_LIMIT HELM_QPS
                     # Valeurs dérivées calculées ICI (un default de paramètre ne peut pas référencer un autre paramètre).
                     TAG="<<parameters.image_tag>>"
                     [ -z "$TAG" ] && TAG="<<parameters.env>>"
@@ -104,13 +141,15 @@ examples:
         usage:
             version: "2.1"
             orbs:
-                rancher2: donkeycode/rancher2@0.0.2
+                rancher2: donkeycode/rancher2@0.0.4
             workflows:
                 deploy:
                     jobs:
                         - rancher2/deploy:
-                            context: mks-kinousassur
+                            context:
+                                - mks
                             env: preprod
                             image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
+                            namespace: kinousassur-ppd
                             project_name: kinousassur
 
