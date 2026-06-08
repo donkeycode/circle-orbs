@@ -179,7 +179,9 @@ jobs:
     phpunit:
         description: |
             Prepare symfony project
-        executor: default
+        executor:
+            image_tag: <<parameters.image_tag>>
+            name: default
         parameters:
             image_tag:
                 default: 8.2-fpm
