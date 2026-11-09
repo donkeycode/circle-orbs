@@ -1,11 +1,3 @@
-version: 2.1
-description: |
-    Sample orb description
-display:
-    home_url: https://github.com/donkeycode/circle-orbs
-    source_url: https://github.com/donkeycode/circle-orbs
-orbs:
-    utils: donkeycode/utils@0.0.2
 commands:
     compose_up:
         description: |
@@ -69,6 +61,28 @@ commands:
             - run:
                 command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_LOGIN --password-stdin $DOCKER_REGISTRY
                 name: Login to docker
+description: |
+    Sample orb description
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+examples:
+    example:
+        description: |
+            Sample example description.
+        usage:
+            jobs:
+                sample:
+                    executor: docker/default
+                    steps:
+                        - docker/ecr_login
+            orbs:
+                docker: donkeycode/docker@0.0.1
+            version: 2.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - docker/push_images
 executors:
     base:
         description: |
@@ -112,7 +126,7 @@ jobs:
         steps:
             - utils/install_git
             - run:
-                command: apk add openssh
+                command: apk add --no-cache --upgrade openssh
             - checkout
             - setup_remote_docker:
                 docker_layer_caching: true
@@ -230,21 +244,6 @@ jobs:
             - run:
                 command: bash ~/project/.circleci/push_images.sh
                 name: Tag Images
-examples:
-    example:
-        description: |
-            Sample example description.
-        usage:
-            version: "2.1"
-            orbs:
-                docker: donkeycode/docker@0.0.1
-            jobs:
-                sample:
-                    executor: docker/default
-                    steps:
-                        - docker/ecr_login
-            workflows:
-                use-my-orb:
-                    jobs:
-                        - docker/push_images
-
+orbs:
+    utils: donkeycode/utils@0.0.2
+version: 2.1
