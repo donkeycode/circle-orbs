@@ -1,11 +1,3 @@
-version: 2.1
-description: |
-    Deploy a project to Rancher 2 / managed Kubernetes (MKS) via Helm. Companion of the legacy donkeycode/rancher orb (Rancher 1), left untouched.
-display:
-    home_url: https://github.com/donkeycode/circle-orbs
-    source_url: https://github.com/donkeycode/circle-orbs
-orbs:
-    utils: donkeycode/utils@0.0.2
 commands:
     kube_login:
         description: |
@@ -55,6 +47,29 @@ commands:
                     kubectl config use-context mks
                     kubectl version --output=yaml | head -n 20
                 name: Configure kubectl from scoped ServiceAccount
+description: |
+    Deploy a project to Rancher 2 / managed Kubernetes (MKS) via Helm. Companion of the legacy donkeycode/rancher orb (Rancher 1), left untouched.
+display:
+    home_url: https://github.com/donkeycode/circle-orbs
+    source_url: https://github.com/donkeycode/circle-orbs
+examples:
+    example:
+        description: |
+            Deploy a project to MKS (preprod) after building/pushing its image to Harbor.
+        usage:
+            orbs:
+                rancher2: donkeycode/rancher2@0.0.5
+            version: 2.1
+            workflows:
+                deploy:
+                    jobs:
+                        - rancher2/deploy:
+                            context:
+                                - mks
+                            env: preprod
+                            image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
+                            namespace: kinousassur-ppd
+                            project_name: kinousassur
 executors:
     default:
         description: |
@@ -126,7 +141,7 @@ jobs:
                     if [ -f "$CHART/values.<<parameters.env>>.yaml" ]; then
                       EXTRA="-f $CHART/values.<<parameters.env>>.yaml"
                     fi
-                    helm upgrade --install --wait --cleanup-on-fail \
+                    helm upgrade --install --wait \
                       "$RELEASE" "$CHART" \
                       --namespace "<<parameters.namespace>>" \
                       -f "$CHART/values.yaml" $EXTRA \
@@ -134,22 +149,6 @@ jobs:
                       --set image.tag="$TAG" \
                       --set deployRevision="$CIRCLE_SHA1"
                 name: Helm upgrade
-examples:
-    example:
-        description: |
-            Deploy a project to MKS (preprod) after building/pushing its image to Harbor.
-        usage:
-            version: "2.1"
-            orbs:
-                rancher2: donkeycode/rancher2@0.0.4
-            workflows:
-                deploy:
-                    jobs:
-                        - rancher2/deploy:
-                            context:
-                                - mks
-                            env: preprod
-                            image_repository: pqngjr40.gra7.container-registry.ovh.net/kinousassur/form
-                            namespace: kinousassur-ppd
-                            project_name: kinousassur
-
+orbs:
+    utils: donkeycode/utils@0.0.2
+version: 2.1

@@ -68,7 +68,7 @@ steps:
         if [ -f "$CHART/values.<<parameters.env>>.yaml" ]; then
           EXTRA="-f $CHART/values.<<parameters.env>>.yaml"
         fi
-        helm upgrade --install --wait --cleanup-on-fail \
+        helm upgrade --install --wait \
           "$RELEASE" "$CHART" \
           --namespace "<<parameters.namespace>>" \
           -f "$CHART/values.yaml" $EXTRA \
