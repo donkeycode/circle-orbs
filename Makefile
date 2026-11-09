@@ -11,4 +11,4 @@ publish-dev:
 
 publish:
 	make publish-dev project=${project}
-	circleci orb publish promote donkeycode/${project}@dev:first patch
+	circleci orb publish promote donkeycode/${project}@dev:first --bump patch
